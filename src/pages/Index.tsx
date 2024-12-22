@@ -2,6 +2,16 @@ import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
 
+interface FeatureIcon {
+  ({ className }: { className?: string }): JSX.Element;
+}
+
+interface Feature {
+  title: string;
+  description: string;
+  icon: FeatureIcon;
+}
+
 const Index = () => {
   const navigate = useNavigate();
 
@@ -67,18 +77,18 @@ const Index = () => {
   );
 };
 
-const features = [
+const features: Feature[] = [
   {
     title: "Multi-Platform Integration",
     description: "Connect and manage WhatsApp, Facebook, and Instagram messages seamlessly.",
-    icon: () => (
+    icon: ({ className }: { className?: string }) => (
       <svg
         xmlns="http://www.w3.org/2000/svg"
         fill="none"
         viewBox="0 0 24 24"
         strokeWidth={1.5}
         stroke="currentColor"
-        className="w-6 h-6"
+        className={className}
       >
         <path
           strokeLinecap="round"
@@ -91,14 +101,14 @@ const features = [
   {
     title: "Real-time Conversations",
     description: "Engage with customers in real-time across all connected platforms.",
-    icon: () => (
+    icon: ({ className }: { className?: string }) => (
       <svg
         xmlns="http://www.w3.org/2000/svg"
         fill="none"
         viewBox="0 0 24 24"
         strokeWidth={1.5}
         stroke="currentColor"
-        className="w-6 h-6"
+        className={className}
       >
         <path
           strokeLinecap="round"
@@ -111,14 +121,14 @@ const features = [
   {
     title: "Smart Inbox",
     description: "Organize and prioritize conversations with our intelligent inbox system.",
-    icon: () => (
+    icon: ({ className }: { className?: string }) => (
       <svg
         xmlns="http://www.w3.org/2000/svg"
         fill="none"
         viewBox="0 0 24 24"
         strokeWidth={1.5}
         stroke="currentColor"
-        className="w-6 h-6"
+        className={className}
       >
         <path
           strokeLinecap="round"
