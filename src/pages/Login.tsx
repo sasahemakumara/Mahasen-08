@@ -52,7 +52,7 @@ const Login = () => {
             }}
             theme="light"
             providers={[]}
-            redirectTo={window.location.origin}
+            redirectTo={`${window.location.origin}/dashboard`}
             view="sign_in"
           />
         </CardContent>
