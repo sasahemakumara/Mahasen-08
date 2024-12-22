@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 interface FeatureIcon {
   ({ className }: { className?: string }): JSX.Element;
@@ -16,14 +17,15 @@ const Index = () => {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen bg-white">
-      <nav className="fixed top-0 w-full bg-white/80 backdrop-blur-sm border-b z-50">
+    <div className="min-h-screen bg-background">
+      <nav className="fixed top-0 w-full bg-background/80 backdrop-blur-sm border-b z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center">
-              <span className="text-xl font-semibold">Support Hub</span>
+              <span className="text-xl font-semibold">Mahasen AI</span>
             </div>
             <div className="flex items-center space-x-4">
+              <ThemeToggle />
               <Button variant="ghost" onClick={() => navigate("/login")}>
                 Sign in
               </Button>
@@ -37,36 +39,40 @@ const Index = () => {
         <section className="relative overflow-hidden">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 space-y-8">
             <div className="text-center space-y-4">
-              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight">
+              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-foreground">
                 Unified Customer Support
                 <br />
-                <span className="text-emerald-600">Made Simple</span>
+                <span className="text-emerald-600 dark:text-emerald-500">Made Simple</span>
               </h1>
-              <p className="text-slate-600 text-lg sm:text-xl max-w-2xl mx-auto">
+              <p className="text-muted-foreground text-lg sm:text-xl max-w-2xl mx-auto">
                 Manage all your customer conversations from WhatsApp, Facebook, and Instagram in one place.
                 Respond faster, collaborate better.
               </p>
             </div>
 
             <div className="flex justify-center gap-4">
-              <Button size="lg" onClick={() => navigate("/signup")} className="group">
+              <Button size="lg" onClick={() => navigate("/signup")}>
                 Get Started
-                <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
+                <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
               <Button size="lg" variant="outline" onClick={() => navigate("/login")}>
-                Sign In
+                Sign in
               </Button>
             </div>
+          </div>
+        </section>
 
-            <div className="mt-16 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+        <section className="py-24 bg-muted/50">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               {features.map((feature, index) => (
                 <div
                   key={index}
-                  className="p-6 rounded-lg border bg-white/50 backdrop-blur-sm hover:shadow-lg transition-all duration-200"
+                  className="p-6 rounded-lg bg-background border"
                 >
-                  <feature.icon className="h-10 w-10 text-emerald-600 mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">{feature.title}</h3>
-                  <p className="text-slate-600">{feature.description}</p>
+                  <feature.icon className="h-12 w-12 text-emerald-600 dark:text-emerald-500" />
+                  <h3 className="mt-4 text-xl font-semibold text-foreground">{feature.title}</h3>
+                  <p className="mt-2 text-muted-foreground">{feature.description}</p>
                 </div>
               ))}
             </div>
