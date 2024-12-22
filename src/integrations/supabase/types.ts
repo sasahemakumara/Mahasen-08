@@ -9,7 +9,71 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      conversations: {
+        Row: {
+          contact_name: string
+          contact_number: string
+          created_at: string | null
+          id: string
+          platform: Database["public"]["Enums"]["platform_type"]
+          updated_at: string | null
+        }
+        Insert: {
+          contact_name: string
+          contact_number: string
+          created_at?: string | null
+          id?: string
+          platform: Database["public"]["Enums"]["platform_type"]
+          updated_at?: string | null
+        }
+        Update: {
+          contact_name?: string
+          contact_number?: string
+          created_at?: string | null
+          id?: string
+          platform?: Database["public"]["Enums"]["platform_type"]
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      messages: {
+        Row: {
+          content: string
+          conversation_id: string | null
+          created_at: string | null
+          id: string
+          sender_name: string
+          sender_number: string
+          status: Database["public"]["Enums"]["message_status"]
+        }
+        Insert: {
+          content: string
+          conversation_id?: string | null
+          created_at?: string | null
+          id?: string
+          sender_name: string
+          sender_number: string
+          status: Database["public"]["Enums"]["message_status"]
+        }
+        Update: {
+          content?: string
+          conversation_id?: string | null
+          created_at?: string | null
+          id?: string
+          sender_name?: string
+          sender_number?: string
+          status?: Database["public"]["Enums"]["message_status"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -18,7 +82,8 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      message_status: "sent" | "received"
+      platform_type: "whatsapp" | "facebook" | "instagram"
     }
     CompositeTypes: {
       [_ in never]: never
