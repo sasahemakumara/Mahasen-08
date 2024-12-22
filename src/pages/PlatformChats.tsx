@@ -5,22 +5,27 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft, MessageSquare } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import type { Database } from "@/integrations/supabase/types";
+
+type Platform = Database["public"]["Enums"]["platform_type"];
 
 interface Conversation {
   id: string;
   contact_name: string;
   contact_number: string;
   updated_at: string;
-  platform: string;
+  platform: Platform;
 }
 
 const PlatformChats = () => {
-  const { platform } = useParams();
+  const { platform } = useParams<{ platform: Platform }>();
   const navigate = useNavigate();
 
   const { data: conversations, isLoading } = useQuery({
     queryKey: ["conversations", platform],
     queryFn: async () => {
+      if (!platform) throw new Error("Platform is required");
+
       const { data, error } = await supabase
         .from("conversations")
         .select("*")
@@ -30,7 +35,12 @@ const PlatformChats = () => {
       if (error) throw error;
       return data as Conversation[];
     },
+    enabled: !!platform,
   });
+
+  if (!platform) {
+    return <div>Invalid platform specified</div>;
+  }
 
   return (
     <div className="min-h-screen bg-slate-50 p-6">

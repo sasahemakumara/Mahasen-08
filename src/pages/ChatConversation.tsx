@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -6,30 +6,21 @@ import { ArrowLeft, Send } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Textarea } from "@/components/ui/textarea";
+import type { Database } from "@/integrations/supabase/types";
 
-interface Message {
-  id: string;
-  content: string;
-  status: "sent" | "received";
-  sender_name: string;
-  sender_number: string;
-  created_at: string;
-}
-
-interface Conversation {
-  id: string;
-  contact_name: string;
-  platform: string;
-}
+type Message = Database["public"]["Tables"]["messages"]["Row"];
+type Conversation = Database["public"]["Tables"]["conversations"]["Row"];
 
 const ChatConversation = () => {
-  const { id } = useParams();
+  const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [newMessage, setNewMessage] = useState("");
 
   const { data: conversation } = useQuery({
     queryKey: ["conversation", id],
     queryFn: async () => {
+      if (!id) throw new Error("Conversation ID is required");
+
       const { data, error } = await supabase
         .from("conversations")
         .select("*")
@@ -39,11 +30,14 @@ const ChatConversation = () => {
       if (error) throw error;
       return data as Conversation;
     },
+    enabled: !!id,
   });
 
   const { data: messages, refetch: refetchMessages } = useQuery({
     queryKey: ["messages", id],
     queryFn: async () => {
+      if (!id) throw new Error("Conversation ID is required");
+
       const { data, error } = await supabase
         .from("messages")
         .select("*")
@@ -53,10 +47,11 @@ const ChatConversation = () => {
       if (error) throw error;
       return data as Message[];
     },
+    enabled: !!id,
   });
 
   const sendMessage = async () => {
-    if (!newMessage.trim()) return;
+    if (!newMessage.trim() || !id) return;
 
     const { error } = await supabase.from("messages").insert({
       conversation_id: id,
@@ -71,6 +66,10 @@ const ChatConversation = () => {
       refetchMessages();
     }
   };
+
+  if (!id) {
+    return <div>Invalid conversation ID</div>;
+  }
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
