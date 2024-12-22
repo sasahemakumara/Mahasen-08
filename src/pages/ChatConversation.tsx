@@ -72,8 +72,8 @@ const ChatConversation = () => {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col">
-      <div className="bg-white border-b p-4">
+    <div className="min-h-screen bg-slate-50 flex flex-col relative">
+      <div className="fixed top-0 left-0 right-0 bg-white border-b p-4 z-10">
         <div className="max-w-4xl mx-auto flex items-center">
           <Button
             variant="ghost"
@@ -89,7 +89,7 @@ const ChatConversation = () => {
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4">
+      <div className="flex-1 overflow-y-auto p-4 mt-16 mb-24">
         <div className="max-w-4xl mx-auto space-y-4">
           {messages?.map((message) => (
             <div
@@ -120,7 +120,7 @@ const ChatConversation = () => {
         </div>
       </div>
 
-      <div className="border-t bg-white p-4">
+      <div className="fixed bottom-0 left-0 right-0 border-t bg-white p-4 z-10">
         <div className="max-w-4xl mx-auto flex gap-4">
           <Textarea
             value={newMessage}
