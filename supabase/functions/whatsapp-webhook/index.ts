@@ -20,8 +20,13 @@ const corsHeaders = {
 async function getOllamaResponse(prompt: string): Promise<string> {
   try {
     console.log('Sending request to Ollama with prompt:', prompt);
+    console.log('Using Ollama base URL:', OLLAMA_BASE_URL);
     
-    const response = await fetch(`${OLLAMA_BASE_URL}/api/generate`, {
+    // Ensure we're using the correct port (11434)
+    const ollamaUrl = `${OLLAMA_BASE_URL}/api/generate`;
+    console.log('Full Ollama URL:', ollamaUrl);
+
+    const response = await fetch(ollamaUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -32,7 +37,13 @@ async function getOllamaResponse(prompt: string): Promise<string> {
     });
 
     if (!response.ok) {
-      throw new Error(`Ollama API responded with status: ${response.status}`);
+      const errorText = await response.text();
+      console.error('Ollama API error response:', {
+        status: response.status,
+        statusText: response.statusText,
+        body: errorText
+      });
+      throw new Error(`Ollama API responded with status: ${response.status}. Body: ${errorText}`);
     }
 
     const text = await response.text();
@@ -40,14 +51,18 @@ async function getOllamaResponse(prompt: string): Promise<string> {
 
     try {
       const data = JSON.parse(text);
-      return data.response || "I apologize, but I couldn't generate a proper response.";
+      if (!data.response) {
+        console.error('Unexpected Ollama response format:', data);
+        throw new Error('Invalid response format from Ollama');
+      }
+      return data.response;
     } catch (parseError) {
       console.error('Error parsing Ollama response:', parseError);
       throw new Error('Invalid JSON response from Ollama');
     }
   } catch (error) {
     console.error('Error getting Ollama response:', error);
-    return "I apologize, but I'm having trouble processing your request right now.";
+    return "I apologize, but I'm having trouble processing your request right now. Please try again later.";
   }
 }
 
