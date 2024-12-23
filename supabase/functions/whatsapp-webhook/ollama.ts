@@ -10,7 +10,7 @@ export async function getOllamaResponse(prompt: string, OLLAMA_BASE_URL: string)
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: "llama2",
+        model: "llama3.2:latest",
         prompt: prompt,
         stream: false
       })
