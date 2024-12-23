@@ -1,34 +1,26 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
 
 const WHATSAPP_ACCESS_TOKEN = Deno.env.get('WHATSAPP_ACCESS_TOKEN')!;
 const WHATSAPP_VERIFY_TOKEN = Deno.env.get('WHATSAPP_VERIFY_TOKEN')!;
 const WHATSAPP_PHONE_ID = Deno.env.get('WHATSAPP_PHONE_ID')!;
 const OLLAMA_BASE_URL = Deno.env.get('OLLAMA_BASE_URL')!;
 
+// Initialize Supabase client
+const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+const supabase = createClient(supabaseUrl, supabaseKey);
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-interface WhatsAppMessage {
-  entry: [{
-    changes: [{
-      value: {
-        contacts: [{
-          wa_id: string;
-          profile: { name: string; }
-        }];
-        messages: [{
-          text: { body: string; }
-        }];
-      }
-    }]
-  }]
-}
-
 async function getOllamaResponse(prompt: string): Promise<string> {
   try {
+    console.log('Sending request to Ollama with prompt:', prompt);
+    
     const response = await fetch(`${OLLAMA_BASE_URL}/api/generate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -39,8 +31,20 @@ async function getOllamaResponse(prompt: string): Promise<string> {
       })
     });
 
-    const data = await response.json();
-    return data.response;
+    if (!response.ok) {
+      throw new Error(`Ollama API responded with status: ${response.status}`);
+    }
+
+    const text = await response.text();
+    console.log('Raw Ollama response:', text);
+
+    try {
+      const data = JSON.parse(text);
+      return data.response || "I apologize, but I couldn't generate a proper response.";
+    } catch (parseError) {
+      console.error('Error parsing Ollama response:', parseError);
+      throw new Error('Invalid JSON response from Ollama');
+    }
   } catch (error) {
     console.error('Error getting Ollama response:', error);
     return "I apologize, but I'm having trouble processing your request right now.";
@@ -68,7 +72,7 @@ async function sendWhatsAppMessage(to: string, text: string) {
     });
 
     const data = await response.json();
-    console.log('WhatsApp API response:', data);
+    console.log('WhatsApp API response:', JSON.stringify(data, null, 2));
     return data;
   } catch (error) {
     console.error('Error sending WhatsApp message:', error);
@@ -105,7 +109,7 @@ serve(async (req) => {
   // Handle incoming messages
   if (req.method === 'POST') {
     try {
-      const message: WhatsAppMessage = await req.json();
+      const message = await req.json();
       const changes = message.entry[0].changes[0].value;
       
       if (!changes.messages || changes.messages.length === 0) {
@@ -123,20 +127,25 @@ serve(async (req) => {
 
       // Get AI response
       const aiResponse = await getOllamaResponse(userMessage);
+      console.log('AI Response:', aiResponse);
       
       // Send response back via WhatsApp
       await sendWhatsAppMessage(userId, aiResponse);
 
       // Store the conversation in Supabase
-      const { data: conversation } = await supabase
+      const { data: conversation, error: convError } = await supabase
         .from('conversations')
         .select('id')
         .eq('contact_number', userId)
         .single();
 
+      if (convError && convError.code !== 'PGRST116') {
+        throw convError;
+      }
+
       let conversationId;
       if (!conversation) {
-        const { data: newConversation } = await supabase
+        const { data: newConversation, error: createError } = await supabase
           .from('conversations')
           .insert({
             contact_number: userId,
@@ -145,13 +154,15 @@ serve(async (req) => {
           })
           .select()
           .single();
+
+        if (createError) throw createError;
         conversationId = newConversation?.id;
       } else {
         conversationId = conversation.id;
       }
 
       // Store the messages
-      await supabase.from('messages').insert([
+      const { error: msgError } = await supabase.from('messages').insert([
         {
           conversation_id: conversationId,
           content: userMessage,
@@ -167,6 +178,8 @@ serve(async (req) => {
           sender_number: 'system'
         }
       ]);
+
+      if (msgError) throw msgError;
 
       return new Response(JSON.stringify({ success: true }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
