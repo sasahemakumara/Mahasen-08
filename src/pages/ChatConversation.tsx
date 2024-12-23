@@ -50,28 +50,34 @@ const ChatConversation = () => {
     enabled: !!id,
   });
 
-  // Subscribe to new messages
+  // Enhanced real-time subscription for messages
   useEffect(() => {
     if (!id) return;
 
-    const subscription = supabase
+    console.log("Setting up real-time subscription for conversation:", id);
+
+    const channel = supabase
       .channel(`messages:${id}`)
       .on(
         'postgres_changes',
         {
-          event: 'INSERT',
+          event: '*', // Listen to all changes (INSERT, UPDATE, DELETE)
           schema: 'public',
           table: 'messages',
           filter: `conversation_id=eq.${id}`
         },
-        () => {
+        (payload) => {
+          console.log("Received real-time update:", payload);
           refetchMessages();
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log("Subscription status:", status);
+      });
 
     return () => {
-      subscription.unsubscribe();
+      console.log("Cleaning up subscription");
+      channel.unsubscribe();
     };
   }, [id, refetchMessages]);
 
@@ -134,7 +140,7 @@ const ChatConversation = () => {
                   <div className="text-sm font-medium mb-1">
                     {message.sender_name}
                   </div>
-                  <div className="text-sm">{message.content}</div>
+                  <div className="text-sm whitespace-pre-line">{message.content}</div>
                   <div className="text-xs opacity-70 mt-1">
                     {new Date(message.created_at).toLocaleTimeString()}
                   </div>
