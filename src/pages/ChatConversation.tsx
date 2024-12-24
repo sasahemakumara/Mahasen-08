@@ -108,7 +108,7 @@ const ChatConversation = () => {
       };
 
       const { error: whatsappError } = await supabase.functions.invoke(
-        'whatsapp-webhook',
+        'send-whatsapp',
         {
           body: messagePayload,
         }
