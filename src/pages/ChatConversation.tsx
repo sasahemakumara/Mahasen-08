@@ -1,23 +1,22 @@
 import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { ArrowLeft, Send } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import type { Database } from "@/integrations/supabase/types";
 import type { WhatsAppMessage } from "@/types/chat";
+import { ChatHeader } from "@/components/chat/ChatHeader";
+import { MessageInput } from "@/components/chat/MessageInput";
 
 type Message = Database["public"]["Tables"]["messages"]["Row"];
 type Conversation = Database["public"]["Tables"]["conversations"]["Row"];
 
 const ChatConversation = () => {
   const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
   const [newMessage, setNewMessage] = useState("");
   const [isSending, setIsSending] = useState(false);
+  const [isAIEnabled, setIsAIEnabled] = useState(true);
   const { toast } = useToast();
 
   const { data: conversation } = useQuery({
@@ -105,6 +104,7 @@ const ChatConversation = () => {
         to: conversation.contact_number,
         message: newMessage,
         type: "text",
+        useAI: isAIEnabled,
       };
 
       const { error: whatsappError } = await supabase.functions.invoke(
@@ -141,21 +141,12 @@ const ChatConversation = () => {
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex flex-col relative">
-      <div className="fixed top-0 left-0 right-0 bg-white dark:bg-slate-800 border-b dark:border-slate-700 p-4 z-10">
-        <div className="max-w-4xl mx-auto flex items-center">
-          <Button
-            variant="ghost"
-            className="mr-4"
-            onClick={() => navigate(`/chats/${conversation?.platform}`)}
-          >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back
-          </Button>
-          <h1 className="text-xl font-semibold dark:text-white">
-            Chat with {conversation?.contact_name}
-          </h1>
-        </div>
-      </div>
+      <ChatHeader
+        contactName={conversation?.contact_name}
+        platform={conversation?.platform}
+        isAIEnabled={isAIEnabled}
+        onAIToggle={setIsAIEnabled}
+      />
 
       <div className="flex-1 overflow-y-auto p-4 mt-16 mb-24">
         <div className="max-w-4xl mx-auto space-y-4">
@@ -177,7 +168,9 @@ const ChatConversation = () => {
                   <div className="text-sm font-medium mb-1">
                     {message.sender_name}
                   </div>
-                  <div className="text-sm whitespace-pre-line">{message.content}</div>
+                  <div className="text-sm whitespace-pre-line">
+                    {message.content}
+                  </div>
                   <div className="text-xs opacity-70 mt-1">
                     {new Date(message.created_at).toLocaleTimeString()}
                   </div>
@@ -188,26 +181,12 @@ const ChatConversation = () => {
         </div>
       </div>
 
-      <div className="fixed bottom-0 left-0 right-0 border-t dark:border-slate-700 bg-white dark:bg-slate-800 p-4 z-10">
-        <div className="max-w-4xl mx-auto flex gap-4">
-          <Textarea
-            value={newMessage}
-            onChange={(e) => setNewMessage(e.target.value)}
-            placeholder="Type your message..."
-            className="flex-1 dark:bg-slate-900 dark:text-white"
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault();
-                sendMessage();
-              }
-            }}
-            disabled={isSending}
-          />
-          <Button onClick={sendMessage} disabled={isSending}>
-            <Send className="h-4 w-4" />
-          </Button>
-        </div>
-      </div>
+      <MessageInput
+        newMessage={newMessage}
+        isSending={isSending}
+        onMessageChange={setNewMessage}
+        onSendMessage={sendMessage}
+      />
     </div>
   );
 };
