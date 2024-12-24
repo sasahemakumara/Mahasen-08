@@ -1,4 +1,4 @@
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 import { useToast } from "@/hooks/use-toast";
@@ -8,6 +8,7 @@ type Message = Database["public"]["Tables"]["messages"]["Row"];
 
 export const useConversation = (id: string | undefined) => {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const { data: conversation, refetch: refetchConversation } = useQuery({
     queryKey: ["conversation", id],
@@ -47,6 +48,8 @@ export const useConversation = (id: string | undefined) => {
     mutationFn: async (enabled: boolean) => {
       if (!id) throw new Error("Conversation ID is required");
 
+      console.log('Updating AI enabled state to:', enabled);
+
       const { error } = await supabase
         .from("conversations")
         .update({ ai_enabled: enabled })
@@ -55,7 +58,11 @@ export const useConversation = (id: string | undefined) => {
       if (error) throw error;
     },
     onSuccess: () => {
-      refetchConversation();
+      queryClient.invalidateQueries({ queryKey: ["conversation", id] });
+      toast({
+        title: "AI Assistant Updated",
+        description: `AI Assistant has been ${conversation?.ai_enabled ? 'enabled' : 'disabled'} for this chat.`,
+      });
     },
     onError: (error) => {
       console.error("Error updating AI enabled state:", error);

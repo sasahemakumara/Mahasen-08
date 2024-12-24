@@ -33,8 +33,10 @@ export const useMessageSending = (
         to: contactNumber,
         message: newMessage,
         type: "text",
-        useAI: isAIEnabled, // Pass the current AI state
+        useAI: isAIEnabled, // This value will control AI responses
       };
+
+      console.log('Sending message with AI enabled:', isAIEnabled);
 
       const { error: whatsappError } = await supabase.functions.invoke(
         'send-whatsapp',

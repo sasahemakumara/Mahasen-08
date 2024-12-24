@@ -26,11 +26,13 @@ const ChatConversation = () => {
   // Initialize AI state from conversation data
   useEffect(() => {
     if (conversation?.ai_enabled !== undefined) {
+      console.log('Setting AI enabled state from conversation:', conversation.ai_enabled);
       setIsAIEnabled(conversation.ai_enabled);
     }
   }, [conversation?.ai_enabled]);
 
   const handleAIToggle = async (enabled: boolean) => {
+    console.log('Toggling AI state to:', enabled);
     setIsAIEnabled(enabled);
     updateAIEnabled.mutate(enabled);
   };
