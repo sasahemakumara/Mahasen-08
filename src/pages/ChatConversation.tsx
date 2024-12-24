@@ -6,6 +6,7 @@ import { ArrowLeft, Send } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Textarea } from "@/components/ui/textarea";
+import { useToast } from "@/components/ui/use-toast";
 import type { Database } from "@/integrations/supabase/types";
 
 type Message = Database["public"]["Tables"]["messages"]["Row"];
@@ -15,6 +16,8 @@ const ChatConversation = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [newMessage, setNewMessage] = useState("");
+  const [isSending, setIsSending] = useState(false);
+  const { toast } = useToast();
 
   const { data: conversation } = useQuery({
     queryKey: ["conversation", id],
@@ -50,7 +53,6 @@ const ChatConversation = () => {
     enabled: !!id,
   });
 
-  // Enhanced real-time subscription for messages
   useEffect(() => {
     if (!id) return;
 
@@ -61,7 +63,7 @@ const ChatConversation = () => {
       .on(
         'postgres_changes',
         {
-          event: '*', // Listen to all changes (INSERT, UPDATE, DELETE)
+          event: '*',
           schema: 'public',
           table: 'messages',
           filter: `conversation_id=eq.${id}`
@@ -82,19 +84,54 @@ const ChatConversation = () => {
   }, [id, refetchMessages]);
 
   const sendMessage = async () => {
-    if (!newMessage.trim() || !id) return;
+    if (!newMessage.trim() || !id || !conversation) return;
+    
+    setIsSending(true);
+    try {
+      // First, store the message in our database
+      const { error: dbError } = await supabase.from("messages").insert({
+        conversation_id: id,
+        content: newMessage,
+        status: "sent",
+        sender_name: "Agent",
+        sender_number: "system",
+      });
 
-    const { error } = await supabase.from("messages").insert({
-      conversation_id: id,
-      content: newMessage,
-      status: "sent",
-      sender_name: "Agent",
-      sender_number: "system",
-    });
+      if (dbError) throw dbError;
 
-    if (!error) {
+      // Then, send the message through WhatsApp
+      const response = await fetch("/api/whatsapp-webhook", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          to: conversation.contact_number,
+          message: newMessage,
+          type: "text",
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to send WhatsApp message");
+      }
+
       setNewMessage("");
       refetchMessages();
+      
+      toast({
+        title: "Message sent",
+        description: "Your message has been sent successfully.",
+      });
+    } catch (error) {
+      console.error("Error sending message:", error);
+      toast({
+        variant: "destructive",
+        title: "Error sending message",
+        description: "Please try again later.",
+      });
+    } finally {
+      setIsSending(false);
     }
   };
 
@@ -164,8 +201,9 @@ const ChatConversation = () => {
                 sendMessage();
               }
             }}
+            disabled={isSending}
           />
-          <Button onClick={sendMessage}>
+          <Button onClick={sendMessage} disabled={isSending}>
             <Send className="h-4 w-4" />
           </Button>
         </div>
