@@ -32,22 +32,36 @@ const App = () => {
   const { toast } = useToast();
 
   useEffect(() => {
+    let mounted = true;
+
     // Check initial session
     const checkSession = async () => {
       try {
         const { data: { session }, error } = await supabase.auth.getSession();
         if (error) throw error;
-        setIsAuthenticated(!!session);
+        
+        if (mounted) {
+          setIsAuthenticated(!!session);
+          // If no session, clear any cached data
+          if (!session) {
+            queryClient.clear();
+          }
+        }
       } catch (error) {
         console.error("Session check error:", error);
-        toast({
-          variant: "destructive",
-          title: "Authentication Error",
-          description: "Please try logging in again.",
-        });
-        setIsAuthenticated(false);
+        if (mounted) {
+          setIsAuthenticated(false);
+          queryClient.clear();
+          toast({
+            variant: "destructive",
+            title: "Authentication Error",
+            description: "Please try logging in again.",
+          });
+        }
       } finally {
-        setIsLoading(false);
+        if (mounted) {
+          setIsLoading(false);
+        }
       }
     };
 
@@ -56,21 +70,29 @@ const App = () => {
     // Listen for auth changes
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      setIsAuthenticated(!!session);
-      
-      // If session is lost, clear QueryClient cache and show notification
-      if (!session) {
-        queryClient.clear();
-        toast({
-          variant: "destructive",
-          title: "Session Expired",
-          description: "Please log in again to continue.",
-        });
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (mounted) {
+        setIsAuthenticated(!!session);
+        
+        // Handle session changes
+        if (event === 'SIGNED_OUT' || event === 'USER_DELETED') {
+          queryClient.clear();
+          toast({
+            variant: "destructive",
+            title: "Session Ended",
+            description: "Please log in again to continue.",
+          });
+        } else if (event === 'TOKEN_REFRESHED') {
+          console.log('Session token refreshed successfully');
+        }
       }
     });
 
-    return () => subscription.unsubscribe();
+    // Cleanup function
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, [toast]);
 
   // Show loading state while checking authentication
