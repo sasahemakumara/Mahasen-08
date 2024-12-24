@@ -38,7 +38,7 @@ export const ChatHeader = ({
           <span className="text-sm text-muted-foreground">AI Assistant</span>
           <Switch
             checked={isAIEnabled}
-            onCheckedChange={onAIEnabled}
+            onCheckedChange={onAIToggle}
             aria-label="Toggle AI Assistant"
           />
         </div>
