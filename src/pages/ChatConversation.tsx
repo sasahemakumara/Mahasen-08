@@ -6,8 +6,9 @@ import { ArrowLeft, Send } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Textarea } from "@/components/ui/textarea";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import type { Database } from "@/integrations/supabase/types";
+import type { WhatsAppMessage } from "@/types/chat";
 
 type Message = Database["public"]["Tables"]["messages"]["Row"];
 type Conversation = Database["public"]["Tables"]["conversations"]["Row"];
@@ -99,22 +100,21 @@ const ChatConversation = () => {
 
       if (dbError) throw dbError;
 
-      // Then, send the message through WhatsApp
-      const response = await fetch("/api/whatsapp-webhook", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          to: conversation.contact_number,
-          message: newMessage,
-          type: "text",
-        }),
-      });
+      // Then, send the message through WhatsApp using the Edge Function
+      const messagePayload: WhatsAppMessage = {
+        to: conversation.contact_number,
+        message: newMessage,
+        type: "text",
+      };
 
-      if (!response.ok) {
-        throw new Error("Failed to send WhatsApp message");
-      }
+      const { error: whatsappError } = await supabase.functions.invoke(
+        'whatsapp-webhook',
+        {
+          body: messagePayload,
+        }
+      );
+
+      if (whatsappError) throw whatsappError;
 
       setNewMessage("");
       refetchMessages();
