@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import type { Database } from "@/integrations/supabase/types";
@@ -19,7 +19,7 @@ const ChatConversation = () => {
   const [isAIEnabled, setIsAIEnabled] = useState(true);
   const { toast } = useToast();
 
-  const { data: conversation } = useQuery({
+  const { data: conversation, refetch: refetchConversation } = useQuery({
     queryKey: ["conversation", id],
     queryFn: async () => {
       if (!id) throw new Error("Conversation ID is required");
@@ -35,6 +35,13 @@ const ChatConversation = () => {
     },
     enabled: !!id,
   });
+
+  // Set initial AI state from conversation data
+  useEffect(() => {
+    if (conversation?.ai_enabled !== undefined) {
+      setIsAIEnabled(conversation.ai_enabled);
+    }
+  }, [conversation?.ai_enabled]);
 
   const { data: messages, refetch: refetchMessages } = useQuery({
     queryKey: ["messages", id],
@@ -52,6 +59,36 @@ const ChatConversation = () => {
     },
     enabled: !!id,
   });
+
+  // Mutation to update AI enabled state
+  const updateAIEnabled = useMutation({
+    mutationFn: async (enabled: boolean) => {
+      if (!id) throw new Error("Conversation ID is required");
+
+      const { error } = await supabase
+        .from("conversations")
+        .update({ ai_enabled: enabled })
+        .eq("id", id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      refetchConversation();
+    },
+    onError: (error) => {
+      console.error("Error updating AI enabled state:", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to update AI Assistant state",
+      });
+    },
+  });
+
+  const handleAIToggle = async (enabled: boolean) => {
+    setIsAIEnabled(enabled);
+    updateAIEnabled.mutate(enabled);
+  };
 
   useEffect(() => {
     if (!id) return;
@@ -145,7 +182,7 @@ const ChatConversation = () => {
         contactName={conversation?.contact_name}
         platform={conversation?.platform}
         isAIEnabled={isAIEnabled}
-        onAIToggle={setIsAIEnabled}
+        onAIToggle={handleAIToggle}
       />
 
       <div className="flex-1 overflow-y-auto p-4 mt-16 mb-24">
