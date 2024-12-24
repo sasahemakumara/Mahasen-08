@@ -75,7 +75,7 @@ const App = () => {
         setIsAuthenticated(!!session);
         
         // Handle session changes
-        if (event === 'SIGNED_OUT' || event === 'USER_DELETED') {
+        if (event === 'SIGNED_OUT') {
           queryClient.clear();
           toast({
             variant: "destructive",
