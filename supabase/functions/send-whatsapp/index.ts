@@ -1,7 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-
-const WHATSAPP_ACCESS_TOKEN = Deno.env.get('WHATSAPP_ACCESS_TOKEN')!;
-const WHATSAPP_PHONE_ID = Deno.env.get('WHATSAPP_PHONE_ID')!;
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3'
+import { sendWhatsAppMessage } from "../whatsapp-webhook/whatsapp.ts";
+import { generateResponse } from "../whatsapp-webhook/ollama.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -9,58 +9,46 @@ const corsHeaders = {
 }
 
 serve(async (req) => {
+  const WHATSAPP_ACCESS_TOKEN = Deno.env.get('WHATSAPP_ACCESS_TOKEN')!;
+  const WHATSAPP_PHONE_ID = Deno.env.get('WHATSAPP_PHONE_ID')!;
+  const OLLAMA_BASE_URL = Deno.env.get('OLLAMA_BASE_URL')!;
+
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { to, message, type } = await req.json();
-    
-    console.log('Sending WhatsApp message:', { to, message, type });
+    const { to, message, type, useAI } = await req.json();
+    console.log('Received request:', { to, message, type, useAI });
 
-    const response = await fetch(
-      `https://graph.facebook.com/v17.0/${WHATSAPP_PHONE_ID}/messages`,
-      {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${WHATSAPP_ACCESS_TOKEN}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          messaging_product: "whatsapp",
-          recipient_type: "individual",
-          to: to,
-          type: "text",
-          text: {
-            preview_url: false,
-            body: message
-          }
-        })
+    // First, send the agent's message
+    await sendWhatsAppMessage(to, message, WHATSAPP_ACCESS_TOKEN, WHATSAPP_PHONE_ID);
+
+    // Only generate and send AI response if useAI is true
+    if (useAI === true) {
+      console.log('AI is enabled, generating response...');
+      const aiResponse = await generateResponse(message, OLLAMA_BASE_URL);
+      
+      if (aiResponse) {
+        console.log('Sending AI response:', aiResponse);
+        await sendWhatsAppMessage(to, aiResponse, WHATSAPP_ACCESS_TOKEN, WHATSAPP_PHONE_ID);
       }
-    );
-
-    const data = await response.json();
-    console.log('WhatsApp API response:', data);
-
-    if (!response.ok) {
-      throw new Error(`WhatsApp API error: ${JSON.stringify(data)}`);
+    } else {
+      console.log('AI is disabled, skipping response generation');
     }
 
     return new Response(
-      JSON.stringify(data),
-      { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200,
-      },
+      JSON.stringify({ success: true }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
     )
   } catch (error) {
-    console.error('Error:', error);
+    console.error('Error in send-whatsapp function:', error);
     return new Response(
       JSON.stringify({ error: error.message }),
       { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       },
     )
   }
