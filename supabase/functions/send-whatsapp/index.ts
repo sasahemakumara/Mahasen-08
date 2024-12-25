@@ -20,14 +20,14 @@ serve(async (req) => {
 
   try {
     const { to, message, type, useAI } = await req.json();
-    console.log('Received request:', { to, message, type, useAI });
+    console.log('Received request with AI state:', { to, message, type, useAI });
 
     // First, send the agent's message
     await sendWhatsAppMessage(to, message, WHATSAPP_ACCESS_TOKEN, WHATSAPP_PHONE_ID);
 
-    // Only generate and send AI response if useAI is true
+    // Strict check for useAI being explicitly true
     if (useAI === true) {
-      console.log('AI is enabled, generating response...');
+      console.log('AI is explicitly enabled, generating response...');
       const aiResponse = await generateResponse(message, OLLAMA_BASE_URL);
       
       if (aiResponse) {
@@ -35,7 +35,7 @@ serve(async (req) => {
         await sendWhatsAppMessage(to, aiResponse, WHATSAPP_ACCESS_TOKEN, WHATSAPP_PHONE_ID);
       }
     } else {
-      console.log('AI is disabled, skipping response generation');
+      console.log('AI is disabled (useAI:', useAI, '), skipping AI response');
     }
 
     return new Response(

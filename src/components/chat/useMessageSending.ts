@@ -33,7 +33,7 @@ export const useMessageSending = (
         to: contactNumber,
         message: newMessage,
         type: "text",
-        useAI: isAIEnabled,
+        useAI: isAIEnabled, // Explicitly pass the boolean value
       };
 
       console.log('Sending message with AI enabled:', isAIEnabled);
