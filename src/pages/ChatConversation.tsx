@@ -10,14 +10,14 @@ import { useRealtimeMessages } from "@/components/chat/useRealtimeMessages";
 const ChatConversation = () => {
   const { id } = useParams<{ id: string }>();
   const [newMessage, setNewMessage] = useState("");
-  const [isAIEnabled, setIsAIEnabled] = useState(true);
+  const [isAIEnabled, setIsAIEnabled] = useState<boolean | null>(null);
 
   const { conversation, messages, refetchMessages, updateAIEnabled } = useConversation(id);
   const { sendMessage, isSending } = useMessageSending(
     id,
     conversation?.contact_number,
     refetchMessages,
-    isAIEnabled
+    isAIEnabled ?? true
   );
 
   // Set up realtime subscription
@@ -25,11 +25,11 @@ const ChatConversation = () => {
 
   // Initialize AI state from conversation data
   useEffect(() => {
-    if (conversation?.ai_enabled !== undefined) {
+    if (conversation?.ai_enabled !== undefined && isAIEnabled === null) {
       console.log('Setting AI enabled state from conversation:', conversation.ai_enabled);
       setIsAIEnabled(conversation.ai_enabled);
     }
-  }, [conversation?.ai_enabled]);
+  }, [conversation?.ai_enabled, isAIEnabled]);
 
   const handleAIToggle = async (enabled: boolean) => {
     console.log('Toggling AI state to:', enabled);
@@ -51,7 +51,7 @@ const ChatConversation = () => {
       <ChatHeader
         contactName={conversation?.contact_name}
         platform={conversation?.platform}
-        isAIEnabled={isAIEnabled}
+        isAIEnabled={isAIEnabled ?? true}
         onAIToggle={handleAIToggle}
       />
 

@@ -57,11 +57,11 @@ export const useConversation = (id: string | undefined) => {
 
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: (_, enabled) => {
       queryClient.invalidateQueries({ queryKey: ["conversation", id] });
       toast({
         title: "AI Assistant Updated",
-        description: `AI Assistant has been ${conversation?.ai_enabled ? 'enabled' : 'disabled'} for this chat.`,
+        description: `AI Assistant has been ${enabled ? 'enabled' : 'disabled'} for this chat.`,
       });
     },
     onError: (error) => {
