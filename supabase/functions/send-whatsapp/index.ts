@@ -1,6 +1,4 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { sendWhatsAppMessage } from "../whatsapp-webhook/whatsapp.ts";
-import { generateResponse } from "../whatsapp-webhook/ollama.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -9,6 +7,8 @@ const corsHeaders = {
 }
 
 serve(async (req) => {
+  console.log('Received request:', req.method);
+
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { 
@@ -32,48 +32,53 @@ serve(async (req) => {
     // Validate environment variables
     const WHATSAPP_ACCESS_TOKEN = Deno.env.get('WHATSAPP_ACCESS_TOKEN');
     const WHATSAPP_PHONE_ID = Deno.env.get('WHATSAPP_PHONE_ID');
-    const OLLAMA_BASE_URL = Deno.env.get('OLLAMA_BASE_URL');
 
-    if (!WHATSAPP_ACCESS_TOKEN || !WHATSAPP_PHONE_ID || !OLLAMA_BASE_URL) {
+    if (!WHATSAPP_ACCESS_TOKEN || !WHATSAPP_PHONE_ID) {
       console.error('Missing required environment variables');
       throw new Error('Server configuration error');
     }
 
     // Parse and validate request body
     const { to, message, type, useAI } = await req.json();
+    console.log('Received message payload:', { to, message, type, useAI });
     
     if (!to || !message || !type) {
       throw new Error('Missing required fields: to, message, or type');
     }
 
-    console.log('Processing request:', { to, message, type, useAI });
-
-    // Send agent's message
-    try {
-      await sendWhatsAppMessage(to, message, WHATSAPP_ACCESS_TOKEN, WHATSAPP_PHONE_ID);
-      console.log('Agent message sent successfully');
-    } catch (error) {
-      console.error('Error sending agent message:', error);
-      throw new Error('Failed to send agent message');
-    }
-
-    // Handle AI response if enabled
-    if (useAI === true) {
-      console.log('AI is enabled, generating response...');
-      try {
-        const aiResponse = await generateResponse(message, OLLAMA_BASE_URL);
-        if (aiResponse) {
-          console.log('Sending AI response:', aiResponse);
-          await sendWhatsAppMessage(to, aiResponse, WHATSAPP_ACCESS_TOKEN, WHATSAPP_PHONE_ID);
-        }
-      } catch (error) {
-        console.error('Error with AI response:', error);
-        // Don't throw here, as the main message was already sent
+    // Send message to WhatsApp
+    const response = await fetch(
+      `https://graph.facebook.com/v17.0/${WHATSAPP_PHONE_ID}/messages`,
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${WHATSAPP_ACCESS_TOKEN}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          messaging_product: "whatsapp",
+          recipient_type: "individual",
+          to: to,
+          type: "text",
+          text: {
+            preview_url: false,
+            body: message
+          }
+        })
       }
+    );
+
+    if (!response.ok) {
+      const errorData = await response.text();
+      console.error('WhatsApp API error:', errorData);
+      throw new Error(`WhatsApp API error: ${response.status}`);
     }
+
+    const result = await response.json();
+    console.log('WhatsApp API response:', result);
 
     return new Response(
-      JSON.stringify({ success: true }),
+      JSON.stringify({ success: true, result }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200
@@ -82,16 +87,13 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error in send-whatsapp function:', error);
     
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-    const statusCode = errorMessage.includes('configuration') ? 500 : 400;
-
     return new Response(
       JSON.stringify({ 
-        error: errorMessage,
+        error: error instanceof Error ? error.message : 'Unknown error occurred',
         details: error instanceof Error ? error.stack : undefined
       }),
       { 
-        status: statusCode,
+        status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       }
     );

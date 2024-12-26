@@ -33,19 +33,24 @@ export const useMessageSending = (
         to: contactNumber,
         message: newMessage,
         type: "text",
-        useAI: isAIEnabled, // Explicitly pass the boolean value
+        useAI: isAIEnabled,
       };
 
-      console.log('Sending message with AI enabled:', isAIEnabled);
+      console.log('Sending message with payload:', messagePayload);
 
-      const { error: whatsappError } = await supabase.functions.invoke(
+      const { data, error: whatsappError } = await supabase.functions.invoke(
         'send-whatsapp',
         {
           body: messagePayload,
         }
       );
 
-      if (whatsappError) throw whatsappError;
+      if (whatsappError) {
+        console.error('WhatsApp sending error:', whatsappError);
+        throw whatsappError;
+      }
+
+      console.log('WhatsApp response:', data);
 
       refetchMessages();
       
@@ -58,7 +63,7 @@ export const useMessageSending = (
       toast({
         variant: "destructive",
         title: "Error sending message",
-        description: "Please try again later.",
+        description: error instanceof Error ? error.message : "Please try again later.",
       });
     } finally {
       setIsSending(false);
