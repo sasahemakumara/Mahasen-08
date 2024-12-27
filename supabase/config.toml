@@ -1,3 +1,5 @@
-project_id = "bgflencddfhsukwptcjy"
+project_id = "txxfaccdpvoacifuumya"
 [functions.send-whatsapp]
+verify_jwt = false
+[functions.whatsapp-webhook]
 verify_jwt = false

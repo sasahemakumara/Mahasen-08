@@ -26,7 +26,10 @@ export const useMessageSending = (
         sender_number: "system",
       });
 
-      if (dbError) throw dbError;
+      if (dbError) {
+        console.error('Database error:', dbError);
+        throw dbError;
+      }
 
       // Then, send the message through WhatsApp using the Edge Function
       const messagePayload: WhatsAppMessage = {
