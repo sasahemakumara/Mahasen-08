@@ -104,8 +104,8 @@ const ChatConversation = () => {
                   "max-w-[80%]",
                   message.status === "sent" 
                     ? message.sender_name === "AI Assistant"
-                      ? "bg-[#9b87f5] text-white" // Purple for AI Assistant
-                      : "bg-[#0EA5E9] text-white" // Blue for Agent
+                      ? "bg-[#0A3981] text-white" // Updated color for AI Assistant
+                      : "bg-[#1F509A] text-white" // Updated color for Agent
                     : "dark:bg-slate-800 dark:text-white"
                 )}
               >
@@ -131,7 +131,7 @@ const ChatConversation = () => {
         <Button
           variant="secondary"
           size="icon"
-          className="fixed bottom-24 right-4 rounded-full shadow-lg"
+          className="fixed bottom-28 right-4 rounded-full shadow-lg z-50 bg-white dark:bg-slate-800"
           onClick={scrollToBottom}
         >
           <ChevronDown className="h-4 w-4" />
