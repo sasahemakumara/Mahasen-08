@@ -76,14 +76,6 @@ const Login = () => {
             theme="light"
             providers={[]}
             redirectTo={`${window.location.origin}/dashboard`}
-            onError={(error) => {
-              console.error("Auth error:", error);
-              toast({
-                variant: "destructive",
-                title: "Authentication Error",
-                description: error.message,
-              });
-            }}
             view="sign_in"
             showLinks={false}
           />
