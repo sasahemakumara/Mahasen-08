@@ -35,7 +35,7 @@ serve(async (req) => {
 
     if (!WHATSAPP_ACCESS_TOKEN || !WHATSAPP_PHONE_ID) {
       console.error('Missing required environment variables');
-      throw new Error('Server configuration error');
+      throw new Error('Server configuration error: Missing WhatsApp credentials');
     }
 
     // Parse and validate request body
