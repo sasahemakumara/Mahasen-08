@@ -19,8 +19,8 @@ serve(async (req) => {
       throw new Error('No text provided');
     }
 
-    console.log('Sending request to Ollama with text:', text);
     console.log('Using Ollama base URL:', Deno.env.get('OLLAMA_BASE_URL'));
+    console.log('Sending request to generate embedding for text:', text);
 
     // Get embedding from Ollama
     const ollamaResponse = await fetch(`${Deno.env.get('OLLAMA_BASE_URL')}/api/embeddings`, {
@@ -28,7 +28,8 @@ serve(async (req) => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         model: "snowflake-arctic-embed2",
-        prompt: text
+        prompt: text,
+        options: { dim: 1024 }
       })
     });
 
@@ -55,7 +56,7 @@ serve(async (req) => {
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
-    console.error('Error:', error);
+    console.error('Error generating embedding:', error);
     return new Response(
       JSON.stringify({ error: error.message }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
