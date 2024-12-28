@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { MessageSquare, Facebook, Instagram } from "lucide-react";
+import { MessageSquare, Facebook, Instagram, FileText } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -110,6 +110,23 @@ const Dashboard = () => {
               </Button>
             </Card>
           ))}
+
+          <Card className="p-6 cursor-pointer transition-all duration-200 hover:shadow-lg border-2 border-transparent dark:bg-slate-900">
+            <div className="rounded-full w-12 h-12 bg-purple-50 dark:bg-purple-950/20 text-purple-600 flex items-center justify-center mb-4">
+              <FileText className="h-6 w-6" />
+            </div>
+            <h3 className="text-lg font-semibold mb-2">Knowledge Base</h3>
+            <p className="text-slate-600 dark:text-slate-400 mb-4">
+              Manage your uploaded files and documents
+            </p>
+            <Button
+              variant="ghost"
+              className="w-full justify-start text-purple-600"
+              onClick={() => navigate("/knowledge-base")}
+            >
+              Manage Files
+            </Button>
+          </Card>
         </div>
       </div>
     </div>

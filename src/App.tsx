@@ -14,6 +14,7 @@ import Dashboard from "./pages/Dashboard";
 import PlatformChats from "./pages/PlatformChats";
 import ChatConversation from "./pages/ChatConversation";
 import About from "./pages/About";
+import KnowledgeBase from "./pages/KnowledgeBase";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -131,6 +132,16 @@ const App = () => {
                 element={
                   isAuthenticated ? (
                     <Dashboard />
+                  ) : (
+                    <Navigate to="/login" replace />
+                  )
+                }
+              />
+              <Route
+                path="/knowledge-base"
+                element={
+                  isAuthenticated ? (
+                    <KnowledgeBase />
                   ) : (
                     <Navigate to="/login" replace />
                   )
