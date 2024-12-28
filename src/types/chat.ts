@@ -3,4 +3,5 @@ export interface WhatsAppMessage {
   message: string;
   type: string;
   useAI?: boolean;
+  context?: string;
 }

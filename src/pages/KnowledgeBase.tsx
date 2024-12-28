@@ -28,6 +28,16 @@ const KnowledgeBase = () => {
     },
   });
 
+  // Generate embedding for text
+  const generateEmbedding = async (text: string) => {
+    const { data, error } = await supabase.functions.invoke('generate-embedding', {
+      body: { text }
+    });
+
+    if (error) throw error;
+    return data.embedding;
+  };
+
   // Handle file upload
   const handleFileUpload = async () => {
     if (!selectedFile) {
@@ -43,28 +53,33 @@ const KnowledgeBase = () => {
     try {
       // Get current user
       const { data: { user }, error: userError } = await supabase.auth.getUser();
-      
-      if (userError || !user) {
-        throw new Error("User not authenticated");
-      }
+      if (userError || !user) throw new Error("User not authenticated");
 
+      // Read file content
+      const text = await selectedFile.text();
+      
+      // Generate embedding
+      const embedding = await generateEmbedding(text);
+
+      // Upload file to storage
       const fileExt = selectedFile.name.split(".").pop();
       const filePath = `${crypto.randomUUID()}.${fileExt}`;
 
-      // Upload file to storage
       const { error: uploadError } = await supabase.storage
         .from("knowledge_base")
         .upload(filePath, selectedFile);
 
       if (uploadError) throw uploadError;
 
-      // Save file metadata to database
+      // Save file metadata and embedding to database
       const { error: dbError } = await supabase.from("knowledge_base_files").insert({
         filename: selectedFile.name,
         file_path: filePath,
         content_type: selectedFile.type,
         size: selectedFile.size,
-        user_id: user.id, // Add the user_id here
+        user_id: user.id,
+        content: text,
+        embedding
       });
 
       if (dbError) throw dbError;
@@ -80,7 +95,7 @@ const KnowledgeBase = () => {
       console.error("Upload error:", error);
       toast({
         title: "Upload failed",
-        description: "There was an error uploading your file",
+        description: error instanceof Error ? error.message : "Please try again later",
         variant: "destructive",
       });
     } finally {
