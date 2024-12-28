@@ -26,8 +26,18 @@ export const FileUploader = ({ onUploadSuccess }: { onUploadSuccess: () => void 
       const { data: { user }, error: userError } = await supabase.auth.getUser();
       if (userError || !user) throw new Error("User not authenticated");
 
-      // Read file content
-      const text = await selectedFile.text();
+      // Read file content as text, handling encoding properly
+      const text = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          // Clean the text content by removing null bytes and invalid characters
+          const content = e.target?.result as string;
+          const cleanContent = content.replace(/\0/g, '').replace(/[\uFFFD\uFFFE\uFFFF]/g, '');
+          resolve(cleanContent);
+        };
+        reader.onerror = () => reject(new Error('Failed to read file'));
+        reader.readAsText(selectedFile);
+      });
       
       // Generate embedding
       const { data: embeddingData, error: embeddingError } = await supabase.functions.invoke(
