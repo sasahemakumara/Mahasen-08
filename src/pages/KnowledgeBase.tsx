@@ -41,6 +41,13 @@ const KnowledgeBase = () => {
 
     setIsUploading(true);
     try {
+      // Get current user
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      
+      if (userError || !user) {
+        throw new Error("User not authenticated");
+      }
+
       const fileExt = selectedFile.name.split(".").pop();
       const filePath = `${crypto.randomUUID()}.${fileExt}`;
 
@@ -57,6 +64,7 @@ const KnowledgeBase = () => {
         file_path: filePath,
         content_type: selectedFile.type,
         size: selectedFile.size,
+        user_id: user.id, // Add the user_id here
       });
 
       if (dbError) throw dbError;
