@@ -44,12 +44,23 @@ serve(async (req) => {
     console.log('Received embedding request');
     const { text } = await req.json();
 
+    // Validate text input
     if (!text) {
       throw new Error('No text provided');
     }
 
+    if (typeof text !== 'string') {
+      throw new Error('Text must be a string');
+    }
+
+    // Clean and truncate the text
+    const cleanText = text.trim();
+    if (cleanText.length === 0) {
+      throw new Error('Text is empty after cleaning');
+    }
+
     // Truncate input text if too long
-    const truncatedText = text.slice(0, 1000); // Limit text length
+    const truncatedText = cleanText.slice(0, 1000); // Limit text length
     console.log('Generating embedding for text:', truncatedText.substring(0, 100) + '...');
 
     // Generate the embedding with specific options to reduce memory usage
@@ -58,6 +69,11 @@ serve(async (req) => {
       normalize: true,
       max_length: 512,
     });
+
+    // Validate output before processing
+    if (!output || !output.data) {
+      throw new Error('Failed to generate embedding: No output data');
+    }
 
     // Extract the embedding output and clean up
     const embedding = Array.from(output.data);
@@ -68,10 +84,10 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ embedding }),
       { 
-        headers: { 
+        headers: {
           ...corsHeaders,
           'Content-Type': 'application/json'
-        } 
+        }
       }
     );
   } catch (error) {
@@ -79,7 +95,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         error: error.message,
-        details: 'Function failed due to resource constraints. Please try with shorter text.'
+        details: 'Please ensure the input is valid text and try again with shorter content if needed.'
       }),
       { 
         status: 500,
