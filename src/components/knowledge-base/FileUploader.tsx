@@ -31,27 +31,41 @@ export const FileUploader = ({ onUploadSuccess }: { onUploadSuccess: () => void 
         const reader = new FileReader();
         reader.onload = async (e) => {
           try {
-            if (!e.target?.result) {
+            const result = e.target?.result;
+            if (!result) {
               reject(new Error('Failed to read file content'));
               return;
             }
-            
-            // Clean and validate the text content
-            const content = String(e.target.result)
-              .replace(/\0/g, '') // Remove null bytes
-              .replace(/[\uFFFD\uFFFE\uFFFF]/g, '') // Remove invalid Unicode
-              .trim();
-            
+
+            // Ensure we have a string
+            const content = String(result);
+            console.log('Raw content type:', typeof content);
+            console.log('Raw content length:', content.length);
+
             if (!content) {
+              reject(new Error('File content is empty'));
+              return;
+            }
+
+            // Clean the content
+            const cleanedContent = content
+              .replace(/\0/g, '')
+              .replace(/[\uFFFD\uFFFE\uFFFF]/g, '')
+              .trim();
+
+            if (!cleanedContent) {
               reject(new Error('File content is empty after cleaning'));
               return;
             }
 
-            // Truncate content if too long (optional, adjust limit as needed)
-            const truncatedContent = content.slice(0, 10000);
-            
+            // Truncate content if too long
+            const truncatedContent = cleanedContent.slice(0, 10000);
+            console.log('Cleaned content length:', truncatedContent.length);
+            console.log('First 100 characters:', truncatedContent.substring(0, 100));
+
             resolve(truncatedContent);
           } catch (error) {
+            console.error('Error processing file content:', error);
             reject(new Error('Error processing file content'));
           }
         };
@@ -59,10 +73,8 @@ export const FileUploader = ({ onUploadSuccess }: { onUploadSuccess: () => void 
         reader.readAsText(selectedFile);
       });
 
-      console.log('Cleaned text length:', text.length);
-      console.log('First 100 characters:', text.substring(0, 100));
-      
       // Generate embedding
+      console.log('Sending text to generate embedding...');
       const { data: embeddingData, error: embeddingError } = await supabase.functions.invoke(
         'generate-embedding',
         {

@@ -36,10 +36,16 @@ serve(async (req) => {
 
   try {
     // Parse and validate request body
+    const requestText = await req.text();
+    console.log('Raw request text:', requestText);
+
+    if (!requestText) {
+      throw new Error('Request body is empty');
+    }
+
     let body;
     try {
-      const text = await req.text();
-      body = JSON.parse(text);
+      body = JSON.parse(requestText);
       console.log('Parsed request body:', JSON.stringify(body));
     } catch (error) {
       console.error('Error parsing request body:', error);
@@ -47,22 +53,30 @@ serve(async (req) => {
     }
 
     // Validate text input
-    if (!body?.text || typeof body.text !== 'string') {
-      throw new Error('Request body must contain a valid text field');
+    if (!body?.text) {
+      throw new Error('Request body must contain a text field');
     }
 
-    // Clean and validate the input text
-    const inputText = String(body.text)
+    const inputText = String(body.text);
+    console.log('Input text type:', typeof inputText);
+    console.log('Input text length:', inputText.length);
+
+    if (!inputText || inputText.length === 0) {
+      throw new Error('Text field is empty');
+    }
+
+    // Clean the text
+    const cleanedText = inputText
       .replace(/\0/g, '')
       .replace(/[\uFFFD\uFFFE\uFFFF]/g, '')
       .trim();
 
-    if (inputText.length === 0) {
+    if (cleanedText.length === 0) {
       throw new Error('Text is empty after cleaning');
     }
 
-    // Truncate input text if too long
-    const truncatedText = inputText.slice(0, 1000);
+    // Truncate text if too long
+    const truncatedText = cleanedText.slice(0, 1000);
     console.log('Processing text length:', truncatedText.length);
 
     // Initialize pipeline on first request
