@@ -36,36 +36,36 @@ serve(async (req) => {
 
   try {
     // Parse and validate request body
-    const requestText = await req.text();
-    console.log('Raw request text:', requestText);
+    const requestData = await req.text();
+    console.log('Raw request data:', requestData);
 
-    if (!requestText) {
+    if (!requestData || requestData.trim().length === 0) {
       throw new Error('Request body is empty');
     }
 
     let body;
     try {
-      body = JSON.parse(requestText);
-      console.log('Parsed request body:', JSON.stringify(body));
+      body = JSON.parse(requestData);
     } catch (error) {
-      console.error('Error parsing request body:', error);
+      console.error('Error parsing JSON:', error);
       throw new Error('Invalid JSON in request body');
     }
 
-    // Validate text input
-    if (!body?.text) {
-      throw new Error('Request body must contain a text field');
+    console.log('Parsed request body:', body);
+
+    // Validate text field exists and is a string
+    if (!body?.text || typeof body.text !== 'string') {
+      throw new Error('Request body must contain a valid text field');
     }
 
-    const inputText = String(body.text);
-    console.log('Input text type:', typeof inputText);
+    const inputText = body.text.trim();
     console.log('Input text length:', inputText.length);
 
-    if (!inputText || inputText.length === 0) {
+    if (inputText.length === 0) {
       throw new Error('Text field is empty');
     }
 
-    // Clean the text
+    // Clean the text - only if it exists and is a string
     const cleanedText = inputText
       .replace(/\0/g, '')
       .replace(/[\uFFFD\uFFFE\uFFFF]/g, '')
@@ -78,6 +78,7 @@ serve(async (req) => {
     // Truncate text if too long
     const truncatedText = cleanedText.slice(0, 1000);
     console.log('Processing text length:', truncatedText.length);
+    console.log('Text sample:', truncatedText.substring(0, 100));
 
     // Initialize pipeline on first request
     if (!pipe) {
