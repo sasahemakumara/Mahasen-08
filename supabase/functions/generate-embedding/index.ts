@@ -1,5 +1,4 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { pipeline } from "npm:@huggingface/transformers";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -21,26 +20,34 @@ serve(async (req) => {
 
     console.log('Generating embedding for text:', text);
 
-    // Create a feature-extraction pipeline
-    const extractor = await pipeline(
-      "feature-extraction",
-      "Supabase/gte-small",
-      { revision: "main" }
+    // Call Hugging Face API to generate embeddings
+    const response = await fetch(
+      "https://api-inference.huggingface.co/pipeline/feature-extraction/Supabase/gte-small",
+      {
+        headers: { 
+          Authorization: `Bearer ${Deno.env.get('HUGGINGFACE_API_KEY')}`,
+          "Content-Type": "application/json"
+        },
+        method: "POST",
+        body: JSON.stringify({
+          inputs: text,
+          options: {
+            wait_for_model: true,
+            use_cache: true
+          }
+        }),
+      }
     );
 
-    // Generate embeddings
-    const output = await extractor(text, {
-      pooling: "mean",
-      normalize: true
-    });
+    if (!response.ok) {
+      throw new Error(`Hugging Face API error: ${response.statusText}`);
+    }
 
-    // Convert to array
-    const embedding = Array.from(await output.tolist());
-
+    const embedding = await response.json();
     console.log('Successfully generated embedding');
 
     return new Response(
-      JSON.stringify({ embedding }),
+      JSON.stringify({ embedding: embedding[0] }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
