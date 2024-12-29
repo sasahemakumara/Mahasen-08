@@ -10,6 +10,29 @@ export const FileUploader = ({ onUploadSuccess }: { onUploadSuccess: () => void 
   const [isUploading, setIsUploading] = useState(false);
   const { toast } = useToast();
 
+  const cleanTextContent = (text: string): string => {
+    // Remove null bytes and other control characters
+    const cleanedText = text
+      .replace(/\0/g, '') // Remove null bytes
+      .replace(/[\x00-\x09\x0B-\x1F\x7F]/g, '') // Remove control characters
+      .replace(/\\u0000/g, ''); // Remove Unicode escape sequences for null
+
+    return cleanedText.trim();
+  };
+
+  const validateFileContent = (content: string): boolean => {
+    if (!content || content.length === 0) {
+      throw new Error('File is empty');
+    }
+    
+    // Check for minimum content length (e.g., 10 characters)
+    if (content.length < 10) {
+      throw new Error('File content is too short');
+    }
+
+    return true;
+  };
+
   const handleFileUpload = async () => {
     if (!selectedFile) {
       toast({
@@ -26,7 +49,7 @@ export const FileUploader = ({ onUploadSuccess }: { onUploadSuccess: () => void 
       const { data: { user }, error: userError } = await supabase.auth.getUser();
       if (userError || !user) throw new Error("User not authenticated");
 
-      // Read file content
+      // Read and clean file content
       const text = await new Promise<string>((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = async (e) => {
@@ -38,18 +61,16 @@ export const FileUploader = ({ onUploadSuccess }: { onUploadSuccess: () => void 
             }
 
             // Clean and validate content
-            const content = result.trim();
-            console.log('Raw content length:', content.length);
+            const cleanedContent = cleanTextContent(result);
+            console.log('Content length before cleaning:', result.length);
+            console.log('Content length after cleaning:', cleanedContent.length);
 
-            if (!content) {
-              reject(new Error('File is empty'));
-              return;
+            if (validateFileContent(cleanedContent)) {
+              resolve(cleanedContent);
             }
-
-            resolve(content);
           } catch (error) {
             console.error('Error processing file:', error);
-            reject(new Error('Failed to process file content'));
+            reject(error);
           }
         };
         reader.onerror = () => reject(new Error('Failed to read file'));
@@ -75,7 +96,7 @@ export const FileUploader = ({ onUploadSuccess }: { onUploadSuccess: () => void 
       }
 
       // Upload file to storage
-      const fileExt = selectedFile.name.split(".").pop();
+      const fileExt = selectedFile.name.split('.').pop();
       const filePath = `${crypto.randomUUID()}.${fileExt}`;
 
       const { error: uploadError } = await supabase.storage
@@ -122,6 +143,7 @@ export const FileUploader = ({ onUploadSuccess }: { onUploadSuccess: () => void 
       <div className="flex gap-4">
         <Input
           type="file"
+          accept=".txt,.md,.doc,.docx"
           onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
           className="flex-1"
         />
