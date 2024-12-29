@@ -6,7 +6,6 @@ import { sendWhatsAppMessage } from './whatsapp.ts';
 import { storeConversation } from './database.ts';
 
 const WHATSAPP_ACCESS_TOKEN = Deno.env.get('WHATSAPP_ACCESS_TOKEN')!;
-const WHATSAPP_VERIFY_TOKEN = Deno.env.get('WHATSAPP_VERIFY_TOKEN')!;
 const WHATSAPP_PHONE_ID = Deno.env.get('WHATSAPP_PHONE_ID')!;
 const OLLAMA_BASE_URL = Deno.env.get('OLLAMA_BASE_URL')!;
 
