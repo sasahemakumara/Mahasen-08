@@ -37,7 +37,7 @@ export const useMessageSending = (
         try {
           // Generate embedding for the question
           console.log('Generating embedding for question:', newMessage);
-          const { data: questionEmbedding, error: embeddingError } = await supabase.functions.invoke(
+          const { data: embeddingData, error: embeddingError } = await supabase.functions.invoke(
             'generate-embedding',
             {
               body: { text: newMessage }
@@ -49,14 +49,19 @@ export const useMessageSending = (
             throw embeddingError;
           }
 
-          console.log('Successfully generated question embedding:', questionEmbedding);
+          if (!embeddingData || !embeddingData.embedding) {
+            console.error('No embedding returned from function');
+            throw new Error('Failed to generate embedding for question');
+          }
+
+          console.log('Successfully generated question embedding');
 
           // Search knowledge base with the question embedding
           console.log('Searching knowledge base with question embedding...');
           const { data: matches, error: searchError } = await supabase.rpc(
             'match_knowledge_base',
             {
-              query_embedding: questionEmbedding.embedding,
+              query_embedding: embeddingData.embedding,
               match_threshold: 0.5,
               match_count: 5
             }
