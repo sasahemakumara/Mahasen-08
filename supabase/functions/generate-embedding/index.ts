@@ -36,46 +36,55 @@ serve(async (req) => {
   }
 
   try {
-    // Initialize pipeline on first request if not already initialized
-    if (!pipe) {
-      pipe = await initPipeline();
+    // Parse request body safely
+    let body;
+    try {
+      body = await req.json();
+    } catch (error) {
+      throw new Error('Invalid JSON in request body');
     }
 
-    console.log('Received embedding request');
-    const { text } = await req.json();
-
-    // Validate text input
-    if (!text) {
-      throw new Error('No text provided');
+    // Validate text input with detailed logging
+    console.log('Received request body:', JSON.stringify(body));
+    
+    if (!body || typeof body.text === 'undefined') {
+      throw new Error('Request body must contain a text field');
     }
 
-    if (typeof text !== 'string') {
-      throw new Error('Text must be a string');
-    }
+    const inputText = String(body.text); // Convert to string explicitly
+    console.log('Input text type:', typeof inputText);
+    
+    // Clean the text
+    const cleanText = inputText.trim();
+    console.log('Cleaned text length:', cleanText.length);
 
-    // Clean and truncate the text
-    const cleanText = text.trim();
     if (cleanText.length === 0) {
       throw new Error('Text is empty after cleaning');
     }
 
     // Truncate input text if too long
-    const truncatedText = cleanText.slice(0, 1000); // Limit text length
-    console.log('Generating embedding for text:', truncatedText.substring(0, 100) + '...');
+    const truncatedText = cleanText.slice(0, 1000);
+    console.log('Processing text (truncated):', truncatedText.substring(0, 100) + '...');
 
-    // Generate the embedding with specific options to reduce memory usage
+    // Initialize pipeline on first request if not already initialized
+    if (!pipe) {
+      pipe = await initPipeline();
+    }
+
+    // Generate the embedding with specific options
+    console.log('Generating embedding...');
     const output = await pipe(truncatedText, {
       pooling: 'mean',
       normalize: true,
       max_length: 512,
     });
 
-    // Validate output before processing
+    // Validate output
     if (!output || !output.data) {
       throw new Error('Failed to generate embedding: No output data');
     }
 
-    // Extract the embedding output and clean up
+    // Extract the embedding and clean up
     const embedding = Array.from(output.data);
     output.data = null; // Help garbage collection
 
@@ -95,7 +104,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         error: error.message,
-        details: 'Please ensure the input is valid text and try again with shorter content if needed.'
+        details: 'Please ensure the input is valid text and try again.'
       }),
       { 
         status: 500,
