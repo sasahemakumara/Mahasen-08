@@ -37,22 +37,22 @@ export const FileUploader = ({ onUploadSuccess }: { onUploadSuccess: () => void 
               return;
             }
 
-            // Ensure we have non-empty content
-            const content = result.trim();
+            // Initial validation of content
+            const content = String(result || '').trim();
             console.log('Raw content length:', content.length);
 
-            if (content.length === 0) {
+            if (!content) {
               reject(new Error('File is empty'));
               return;
             }
 
             // Clean and validate the content
-            const cleanedContent = String(content)
+            const cleanedContent = content
               .replace(/\0/g, '')
               .replace(/[\uFFFD\uFFFE\uFFFF]/g, '')
               .trim();
 
-            if (cleanedContent.length === 0) {
+            if (!cleanedContent) {
               reject(new Error('File contains no valid text content'));
               return;
             }

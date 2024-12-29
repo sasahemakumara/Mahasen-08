@@ -55,26 +55,27 @@ serve(async (req) => {
     console.log('Parsed request body:', body);
 
     // Strict validation of text field
-    if (!body || typeof body.text !== 'string') {
+    if (!body || !body.text) {
       console.error('Invalid or missing text field:', body);
-      throw new Error('Request must contain a valid text field');
+      throw new Error('Request must contain a text field');
     }
 
-    const inputText = body.text.trim();
-    console.log('Input text length:', inputText.length);
+    // Ensure text is a string and not empty
+    const textInput = String(body.text || '').trim();
+    console.log('Text input length:', textInput.length);
 
-    if (inputText.length === 0) {
+    if (textInput.length === 0) {
       throw new Error('Text field is empty after trimming');
     }
 
-    // Clean the text with explicit string conversion and null checks
-    const cleanedText = String(inputText)
+    // Clean the text with explicit string conversion
+    const cleanedText = textInput
       .replace(/\0/g, '')
       .replace(/[\uFFFD\uFFFE\uFFFF]/g, '')
       .trim();
 
     if (cleanedText.length === 0) {
-      throw new Error('Text is empty after cleaning');
+      throw new Error('Text contains no valid content after cleaning');
     }
 
     // Truncate text if too long
