@@ -26,7 +26,7 @@ export const FileUploader = ({ onUploadSuccess }: { onUploadSuccess: () => void 
       const { data: { user }, error: userError } = await supabase.auth.getUser();
       if (userError || !user) throw new Error("User not authenticated");
 
-      // Read and validate file content
+      // Read file content
       const text = await new Promise<string>((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = async (e) => {
@@ -37,8 +37,8 @@ export const FileUploader = ({ onUploadSuccess }: { onUploadSuccess: () => void 
               return;
             }
 
-            // Initial validation of content
-            const content = result ? String(result).trim() : '';
+            // Clean and validate content
+            const content = result.trim();
             console.log('Raw content length:', content.length);
 
             if (!content) {
@@ -46,23 +46,7 @@ export const FileUploader = ({ onUploadSuccess }: { onUploadSuccess: () => void 
               return;
             }
 
-            // Clean and validate the content with explicit null checks
-            const cleanedContent = content
-              ?.replace(/\0/g, '')
-              ?.replace(/[\uFFFD\uFFFE\uFFFF]/g, '')
-              ?.trim() || '';
-
-            if (!cleanedContent) {
-              reject(new Error('File contains no valid text content'));
-              return;
-            }
-
-            // Truncate content if too long
-            const truncatedContent = cleanedContent.slice(0, 10000);
-            console.log('Processed content length:', truncatedContent.length);
-            console.log('Content sample:', truncatedContent.substring(0, 100));
-
-            resolve(truncatedContent);
+            resolve(content);
           } catch (error) {
             console.error('Error processing file:', error);
             reject(new Error('Failed to process file content'));
@@ -115,7 +99,7 @@ export const FileUploader = ({ onUploadSuccess }: { onUploadSuccess: () => void 
 
       toast({
         title: "Success",
-        description: "File uploaded successfully",
+        description: "File uploaded and processed successfully",
       });
 
       setSelectedFile(null);
