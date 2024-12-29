@@ -39,7 +39,7 @@ export const FileUploader = ({ onUploadSuccess }: { onUploadSuccess: () => void 
         reader.readAsText(selectedFile);
       });
       
-      // Generate embedding
+      // Generate embedding using the updated model
       const { data: embeddingData, error: embeddingError } = await supabase.functions.invoke(
         'generate-embedding',
         {

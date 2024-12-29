@@ -40,11 +40,7 @@ export const useMessageSending = (
           const { data: embeddingData, error: embeddingError } = await supabase.functions.invoke(
             'generate-embedding',
             {
-              body: { 
-                text: newMessage,
-                model: "snowflake-arctic-embed2",
-                dimensions: 1024
-              }
+              body: { text: newMessage }
             }
           );
 

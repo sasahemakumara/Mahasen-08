@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import "https://deno.land/x/xhr@0.1.0/mod.ts";
+import { pipeline } from "npm:@huggingface/transformers";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -19,40 +19,28 @@ serve(async (req) => {
       throw new Error('No text provided');
     }
 
-    console.log('Using Ollama base URL:', Deno.env.get('OLLAMA_BASE_URL'));
-    console.log('Sending request to generate embedding for text:', text);
+    console.log('Generating embedding for text:', text);
 
-    // Get embedding from Ollama
-    const ollamaResponse = await fetch(`${Deno.env.get('OLLAMA_BASE_URL')}/api/embeddings`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: "snowflake-arctic-embed2",
-        prompt: text,
-        options: { dim: 1024 }
-      })
+    // Create a feature-extraction pipeline
+    const extractor = await pipeline(
+      "feature-extraction",
+      "Supabase/gte-small",
+      { revision: "main" }
+    );
+
+    // Generate embeddings
+    const output = await extractor(text, {
+      pooling: "mean",
+      normalize: true
     });
 
-    if (!ollamaResponse.ok) {
-      const errorText = await ollamaResponse.text();
-      console.error('Ollama API error response:', {
-        status: ollamaResponse.status,
-        statusText: ollamaResponse.statusText,
-        body: errorText
-      });
-      throw new Error(`Ollama API responded with status: ${ollamaResponse.status}. Body: ${errorText}`);
-    }
+    // Convert to array
+    const embedding = Array.from(await output.tolist());
 
-    const data = await ollamaResponse.json();
-    console.log('Ollama response:', data);
-
-    if (!data.embedding) {
-      console.error('Unexpected Ollama response format:', data);
-      throw new Error('Invalid response format from Ollama');
-    }
+    console.log('Successfully generated embedding');
 
     return new Response(
-      JSON.stringify({ embedding: data.embedding }),
+      JSON.stringify({ embedding }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
