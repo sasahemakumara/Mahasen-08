@@ -31,55 +31,63 @@ export const useMessageSending = (
         throw dbError;
       }
 
-      // Generate embedding for the message to search knowledge base
-      console.log('Generating embedding for message:', newMessage);
-      const { data: embeddingData, error: embeddingError } = await supabase.functions.invoke(
-        'generate-embedding',
-        {
-          body: { text: newMessage }
-        }
-      );
-
-      if (embeddingError) {
-        console.error('Embedding error:', embeddingError);
-        throw embeddingError;
-      }
-
-      console.log('Successfully generated embedding:', embeddingData);
-
-      // Search knowledge base for relevant content
-      console.log('Searching knowledge base with embedding...');
-      const { data: matches, error: searchError } = await supabase.rpc(
-        'match_knowledge_base',
-        {
-          query_embedding: embeddingData.embedding,
-          match_threshold: 0.5, // Lowered threshold for better matches
-          match_count: 5 // Increased match count
-        }
-      );
-
-      if (searchError) {
-        console.error('Knowledge base search error:', searchError);
-        throw searchError;
-      }
-
-      console.log('Found knowledge base matches:', matches);
-
-      // Prepare context from knowledge base matches with similarity scores
       let context = '';
-      if (matches && matches.length > 0) {
-        context = `Here is the relevant information from our knowledge base:\n\n${matches
-          .map((match, index) => `[Similarity: ${(match.similarity * 100).toFixed(2)}%]\n${match.content}\n`)
-          .join('\n')}`;
-        
-        context += '\n\nPlease use this information to answer the following question. If the information provided is not relevant to the question, you may provide a general response.';
-      } else {
-        context = 'No relevant information found in the knowledge base. Please provide a general response.';
+      
+      if (isAIEnabled) {
+        try {
+          // Generate embedding for the question
+          console.log('Generating embedding for question:', newMessage);
+          const { data: questionEmbedding, error: embeddingError } = await supabase.functions.invoke(
+            'generate-embedding',
+            {
+              body: { text: newMessage }
+            }
+          );
+
+          if (embeddingError) {
+            console.error('Question embedding error:', embeddingError);
+            throw embeddingError;
+          }
+
+          console.log('Successfully generated question embedding:', questionEmbedding);
+
+          // Search knowledge base with the question embedding
+          console.log('Searching knowledge base with question embedding...');
+          const { data: matches, error: searchError } = await supabase.rpc(
+            'match_knowledge_base',
+            {
+              query_embedding: questionEmbedding.embedding,
+              match_threshold: 0.5,
+              match_count: 5
+            }
+          );
+
+          if (searchError) {
+            console.error('Knowledge base search error:', searchError);
+            throw searchError;
+          }
+
+          console.log('Found knowledge base matches:', matches);
+
+          // Prepare context from knowledge base matches
+          if (matches && matches.length > 0) {
+            context = `Here is the relevant information from our knowledge base:\n\n${matches
+              .map((match, index) => `[Similarity: ${(match.similarity * 100).toFixed(2)}%]\n${match.content}\n`)
+              .join('\n')}`;
+            
+            context += '\n\nPlease use this information to answer the following question. If the information provided is not relevant to the question, you may provide a general response.';
+          } else {
+            context = 'No relevant information found in the knowledge base. Please provide a general response.';
+          }
+
+          console.log('Prepared context:', context);
+        } catch (error) {
+          console.error('Error in RAG process:', error);
+          context = 'Error accessing knowledge base. Providing general response.';
+        }
       }
 
-      console.log('Prepared context:', context);
-
-      // Then, send the message through WhatsApp using the Edge Function
+      // Send the message through WhatsApp using the Edge Function
       const messagePayload: WhatsAppMessage = {
         to: contactNumber,
         message: newMessage,

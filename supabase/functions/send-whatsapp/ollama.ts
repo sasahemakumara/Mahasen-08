@@ -1,8 +1,11 @@
-export async function getOllamaResponse(prompt: string, OLLAMA_BASE_URL: string): Promise<string> {
+export async function getOllamaResponse(prompt: string, OLLAMA_BASE_URL: string, context: string = ''): Promise<string> {
   try {
-    console.log('Sending request to Ollama with prompt:', prompt);
     console.log('Using Ollama base URL:', OLLAMA_BASE_URL);
     
+    const systemPrompt = context ? 
+      `You are a helpful AI assistant with access to a knowledge base. ${context}` :
+      'You are a helpful AI assistant. Please provide a general response if no specific information is available.';
+
     const ollamaUrl = `${OLLAMA_BASE_URL}/api/generate`;
     console.log('Full Ollama URL:', ollamaUrl);
 
@@ -11,7 +14,7 @@ export async function getOllamaResponse(prompt: string, OLLAMA_BASE_URL: string)
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         model: "llama3.2:latest",
-        prompt: prompt,
+        prompt: `${systemPrompt}\n\nUser Question: ${prompt}\n\nPlease provide your response:`,
         stream: false
       })
     });
