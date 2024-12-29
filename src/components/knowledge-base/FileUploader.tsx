@@ -38,7 +38,7 @@ export const FileUploader = ({ onUploadSuccess }: { onUploadSuccess: () => void 
             }
 
             // Initial validation of content
-            const content = String(result || '').trim();
+            const content = result ? String(result).trim() : '';
             console.log('Raw content length:', content.length);
 
             if (!content) {
@@ -46,11 +46,11 @@ export const FileUploader = ({ onUploadSuccess }: { onUploadSuccess: () => void 
               return;
             }
 
-            // Clean and validate the content
+            // Clean and validate the content with explicit null checks
             const cleanedContent = content
-              .replace(/\0/g, '')
-              .replace(/[\uFFFD\uFFFE\uFFFF]/g, '')
-              .trim();
+              ?.replace(/\0/g, '')
+              ?.replace(/[\uFFFD\uFFFE\uFFFF]/g, '')
+              ?.trim() || '';
 
             if (!cleanedContent) {
               reject(new Error('File contains no valid text content'));
