@@ -18,36 +18,67 @@ serve(async (req) => {
       throw new Error('No text provided');
     }
 
-    console.log('Generating embedding for text:', text);
+    console.log('Generating embedding for text:', text.substring(0, 100) + '...');
 
-    // Call Hugging Face API to generate embeddings
-    const response = await fetch(
-      "https://api-inference.huggingface.co/pipeline/feature-extraction/Supabase/gte-small",
-      {
-        headers: { 
-          Authorization: `Bearer ${Deno.env.get('HUGGINGFACE_API_KEY')}`,
-          "Content-Type": "application/json"
-        },
-        method: "POST",
-        body: JSON.stringify({
-          inputs: text,
-          options: {
-            wait_for_model: true,
-            use_cache: true
+    // Function to make the API call with retries
+    const generateEmbedding = async (retries = 3) => {
+      for (let i = 0; i < retries; i++) {
+        try {
+          const response = await fetch(
+            "https://api-inference.huggingface.co/pipeline/feature-extraction/Supabase/gte-small",
+            {
+              headers: { 
+                Authorization: `Bearer ${Deno.env.get('HUGGINGFACE_API_KEY')}`,
+                "Content-Type": "application/json"
+              },
+              method: "POST",
+              body: JSON.stringify({
+                inputs: text,
+                options: {
+                  wait_for_model: true,
+                  use_cache: true
+                }
+              }),
+            }
+          );
+
+          if (!response.ok) {
+            const errorText = await response.text();
+            console.error(`Attempt ${i + 1} failed:`, {
+              status: response.status,
+              statusText: response.statusText,
+              error: errorText
+            });
+            
+            if (i === retries - 1) {
+              throw new Error(`Hugging Face API error: ${response.statusText}\n${errorText}`);
+            }
+            
+            // Wait before retrying (exponential backoff)
+            await new Promise(resolve => setTimeout(resolve, Math.pow(2, i) * 1000));
+            continue;
           }
-        }),
+
+          const embedding = await response.json();
+          
+          if (!Array.isArray(embedding) || embedding.length === 0) {
+            throw new Error('Invalid embedding format received from API');
+          }
+
+          console.log('Successfully generated embedding with dimensions:', embedding[0].length);
+          return embedding[0];
+        } catch (error) {
+          if (i === retries - 1) throw error;
+          console.error(`Attempt ${i + 1} failed:`, error);
+          await new Promise(resolve => setTimeout(resolve, Math.pow(2, i) * 1000));
+        }
       }
-    );
+    };
 
-    if (!response.ok) {
-      throw new Error(`Hugging Face API error: ${response.statusText}`);
-    }
-
-    const embedding = await response.json();
-    console.log('Successfully generated embedding');
+    const embedding = await generateEmbedding();
 
     return new Response(
-      JSON.stringify({ embedding: embedding[0] }),
+      JSON.stringify({ embedding }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
