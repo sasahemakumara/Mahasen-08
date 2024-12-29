@@ -53,8 +53,8 @@ export const useMessageSending = (
         'match_knowledge_base',
         {
           query_embedding: embeddingData.embedding,
-          match_threshold: 0.7, // Adjust threshold for better matches
-          match_count: 3 // Get top 3 most relevant matches
+          match_threshold: 0.5, // Lowered threshold for better matches
+          match_count: 5 // Increased match count
         }
       );
 
@@ -65,12 +65,17 @@ export const useMessageSending = (
 
       console.log('Found knowledge base matches:', matches);
 
-      // Prepare context from knowledge base matches
-      const context = matches && matches.length > 0
-        ? `\nRelevant information from knowledge base:\n${matches
-            .map((match, index) => `[${index + 1}] ${match.content}`)
-            .join('\n')}`
-        : '';
+      // Prepare context from knowledge base matches with similarity scores
+      let context = '';
+      if (matches && matches.length > 0) {
+        context = `Here is the relevant information from our knowledge base:\n\n${matches
+          .map((match, index) => `[Similarity: ${(match.similarity * 100).toFixed(2)}%]\n${match.content}\n`)
+          .join('\n')}`;
+        
+        context += '\n\nPlease use this information to answer the following question. If the information provided is not relevant to the question, you may provide a general response.';
+      } else {
+        context = 'No relevant information found in the knowledge base. Please provide a general response.';
+      }
 
       console.log('Prepared context:', context);
 
@@ -80,7 +85,7 @@ export const useMessageSending = (
         message: newMessage,
         type: "text",
         useAI: isAIEnabled,
-        context: context // Add context to the message payload
+        context: context
       };
 
       console.log('Sending message with payload:', messagePayload);

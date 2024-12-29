@@ -1,5 +1,14 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
+import { getOllamaResponse } from './ollama.ts';
+import { sendWhatsAppMessage } from './whatsapp.ts';
+import { storeConversation } from './database.ts';
+
+const WHATSAPP_ACCESS_TOKEN = Deno.env.get('WHATSAPP_ACCESS_TOKEN')!;
+const WHATSAPP_VERIFY_TOKEN = Deno.env.get('WHATSAPP_VERIFY_TOKEN')!;
+const WHATSAPP_PHONE_ID = Deno.env.get('WHATSAPP_PHONE_ID')!;
+const OLLAMA_BASE_URL = Deno.env.get('OLLAMA_BASE_URL')!;
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -23,60 +32,28 @@ serve(async (req) => {
     let finalMessage = message;
 
     if (useAI) {
-      console.log('AI is enabled, generating response with context:', context);
+      // Construct a more explicit prompt that instructs the AI how to use the context
+      const prompt = `You are a helpful AI assistant with access to a knowledge base. 
+${context}
 
-      // Prepare the prompt with context
-      const prompt = context 
-        ? `Based on the following context:\n${context}\n\nUser question: ${message}\n\nPlease provide a response:`
-        : message;
+User Question: ${message}
 
-      console.log('Sending request to Ollama with prompt:', prompt);
+Instructions:
+1. If the context contains relevant information, use it to provide a detailed and accurate response.
+2. If the context is not relevant to the question, provide a general response and mention that the specific information is not in your knowledge base.
+3. Always maintain a helpful and professional tone.
+4. Be direct and concise in your response.
 
-      const ollamaResponse = await fetch(`${Deno.env.get('OLLAMA_BASE_URL')}/api/generate`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: "llama2:latest",
-          prompt: prompt,
-          stream: false
-        })
-      });
+Please provide your response:`;
 
-      if (!ollamaResponse.ok) {
-        throw new Error(`Ollama API error: ${ollamaResponse.statusText}`);
-      }
+      console.log('Sending prompt to Ollama:', prompt);
 
-      const aiData = await ollamaResponse.json();
-      console.log('Raw Ollama response:', aiData);
-
-      finalMessage = aiData.response;
+      finalMessage = await getOllamaResponse(prompt, OLLAMA_BASE_URL);
       console.log('AI Response:', finalMessage);
     }
 
     // Send message to WhatsApp
-    const whatsappResponse = await fetch(
-      `https://graph.facebook.com/v17.0/${Deno.env.get('WHATSAPP_PHONE_ID')}/messages`,
-      {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${Deno.env.get('WHATSAPP_ACCESS_TOKEN')}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          messaging_product: 'whatsapp',
-          recipient_type: 'individual',
-          to: to,
-          type: 'text',
-          text: { body: finalMessage }
-        }),
-      }
-    );
-
-    if (!whatsappResponse.ok) {
-      throw new Error(`WhatsApp API error: ${whatsappResponse.statusText}`);
-    }
-
-    const whatsappData = await whatsappResponse.json();
+    const whatsappData = await sendWhatsAppMessage(to, finalMessage, WHATSAPP_ACCESS_TOKEN, WHATSAPP_PHONE_ID);
     console.log('WhatsApp API response:', whatsappData);
 
     return new Response(
