@@ -25,7 +25,7 @@ serve(async (req) => {
       for (let i = 0; i < retries; i++) {
         try {
           const response = await fetch(
-            "https://api-inference.huggingface.co/pipeline/feature-extraction/Supabase/gte-small",
+            "https://api-inference.huggingface.co/models/Supabase/gte-small",
             {
               headers: { 
                 Authorization: `Bearer ${Deno.env.get('HUGGINGFACE_API_KEY')}`,
@@ -35,8 +35,7 @@ serve(async (req) => {
               body: JSON.stringify({
                 inputs: text,
                 options: {
-                  wait_for_model: true,
-                  use_cache: true
+                  wait_for_model: true
                 }
               }),
             }
