@@ -4,19 +4,18 @@ import { env, pipeline } from 'https://cdn.jsdelivr.net/npm/@xenova/transformers
 // Configuration for Deno runtime
 env.useBrowserCache = false;
 env.allowLocalModels = false;
-env.cacheDir = '/tmp/transformers_cache'; // Use temporary directory for caching
-env.localModelPath = undefined; // Disable local model loading
+env.cacheDir = '/tmp/transformers_cache';
+env.localModelPath = undefined;
 
 let pipe: any = null;
 
-// Initialize the pipeline with specific configuration to reduce memory usage
 const initPipeline = async () => {
   try {
     console.log('Initializing feature extraction pipeline...');
     return await pipeline('feature-extraction', 'Supabase/gte-small', {
       revision: 'main',
-      quantized: true, // Use quantized model if available
-      maxLength: 512, // Limit input length
+      quantized: true,
+      maxLength: 512,
     });
   } catch (error) {
     console.error('Error initializing pipeline:', error);
@@ -36,7 +35,7 @@ serve(async (req) => {
   }
 
   try {
-    // Parse request body safely
+    // Parse and validate request body
     let body;
     try {
       const text = await req.text();
@@ -48,13 +47,15 @@ serve(async (req) => {
     }
 
     // Validate text input
-    if (!body?.text) {
-      throw new Error('Request body must contain a text field');
+    if (!body?.text || typeof body.text !== 'string') {
+      throw new Error('Request body must contain a valid text field');
     }
 
-    // Ensure text is a string and clean it
-    const inputText = String(body.text).trim();
-    console.log('Input text length:', inputText.length);
+    // Clean and validate the input text
+    const inputText = String(body.text)
+      .replace(/\0/g, '')
+      .replace(/[\uFFFD\uFFFE\uFFFF]/g, '')
+      .trim();
 
     if (inputText.length === 0) {
       throw new Error('Text is empty after cleaning');

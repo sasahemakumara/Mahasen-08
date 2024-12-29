@@ -26,32 +26,40 @@ export const FileUploader = ({ onUploadSuccess }: { onUploadSuccess: () => void 
       const { data: { user }, error: userError } = await supabase.auth.getUser();
       if (userError || !user) throw new Error("User not authenticated");
 
-      // Read file content as text, handling encoding properly
+      // Read and validate file content
       const text = await new Promise<string>((resolve, reject) => {
         const reader = new FileReader();
-        reader.onload = (e) => {
-          if (!e.target?.result) {
-            reject(new Error('Failed to read file content'));
-            return;
+        reader.onload = async (e) => {
+          try {
+            if (!e.target?.result) {
+              reject(new Error('Failed to read file content'));
+              return;
+            }
+            
+            // Clean and validate the text content
+            const content = String(e.target.result)
+              .replace(/\0/g, '') // Remove null bytes
+              .replace(/[\uFFFD\uFFFE\uFFFF]/g, '') // Remove invalid Unicode
+              .trim();
+            
+            if (!content) {
+              reject(new Error('File content is empty after cleaning'));
+              return;
+            }
+
+            // Truncate content if too long (optional, adjust limit as needed)
+            const truncatedContent = content.slice(0, 10000);
+            
+            resolve(truncatedContent);
+          } catch (error) {
+            reject(new Error('Error processing file content'));
           }
-          // Ensure we have a string and clean it
-          const content = String(e.target.result)
-            .replace(/\0/g, '') // Remove null bytes
-            .replace(/[\uFFFD\uFFFE\uFFFF]/g, '') // Remove invalid Unicode
-            .trim(); // Remove whitespace
-          
-          if (!content) {
-            reject(new Error('File content is empty after cleaning'));
-            return;
-          }
-          
-          resolve(content);
         };
         reader.onerror = () => reject(new Error('Failed to read file'));
         reader.readAsText(selectedFile);
       });
 
-      console.log('File content length:', text.length);
+      console.log('Cleaned text length:', text.length);
       console.log('First 100 characters:', text.substring(0, 100));
       
       // Generate embedding
