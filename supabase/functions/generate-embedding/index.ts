@@ -7,10 +7,7 @@ env.allowLocalModels = false;
 env.cacheDir = '/tmp/transformers_cache'; // Use temporary directory for caching
 env.localModelPath = undefined; // Disable local model loading
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+let pipe: any = null;
 
 // Initialize the pipeline with specific configuration to reduce memory usage
 const initPipeline = async () => {
@@ -27,7 +24,10 @@ const initPipeline = async () => {
   }
 };
 
-let pipe: any = null;
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+}
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -39,52 +39,48 @@ serve(async (req) => {
     // Parse request body safely
     let body;
     try {
-      body = await req.json();
+      const text = await req.text();
+      body = JSON.parse(text);
+      console.log('Parsed request body:', JSON.stringify(body));
     } catch (error) {
+      console.error('Error parsing request body:', error);
       throw new Error('Invalid JSON in request body');
     }
 
-    // Validate text input with detailed logging
-    console.log('Received request body:', JSON.stringify(body));
-    
-    if (!body || typeof body.text === 'undefined') {
+    // Validate text input
+    if (!body?.text) {
       throw new Error('Request body must contain a text field');
     }
 
-    const inputText = String(body.text); // Convert to string explicitly
-    console.log('Input text type:', typeof inputText);
-    
-    // Clean the text
-    const cleanText = inputText.trim();
-    console.log('Cleaned text length:', cleanText.length);
+    // Ensure text is a string and clean it
+    const inputText = String(body.text).trim();
+    console.log('Input text length:', inputText.length);
 
-    if (cleanText.length === 0) {
+    if (inputText.length === 0) {
       throw new Error('Text is empty after cleaning');
     }
 
     // Truncate input text if too long
-    const truncatedText = cleanText.slice(0, 1000);
-    console.log('Processing text (truncated):', truncatedText.substring(0, 100) + '...');
+    const truncatedText = inputText.slice(0, 1000);
+    console.log('Processing text length:', truncatedText.length);
 
-    // Initialize pipeline on first request if not already initialized
+    // Initialize pipeline on first request
     if (!pipe) {
       pipe = await initPipeline();
     }
 
-    // Generate the embedding with specific options
+    // Generate embedding
     console.log('Generating embedding...');
     const output = await pipe(truncatedText, {
       pooling: 'mean',
       normalize: true,
-      max_length: 512,
     });
 
-    // Validate output
-    if (!output || !output.data) {
+    if (!output?.data) {
       throw new Error('Failed to generate embedding: No output data');
     }
 
-    // Extract the embedding and clean up
+    // Extract embedding and clean up
     const embedding = Array.from(output.data);
     output.data = null; // Help garbage collection
 
@@ -101,9 +97,10 @@ serve(async (req) => {
     );
   } catch (error) {
     console.error('Error in generate-embedding function:', error);
+    
     return new Response(
       JSON.stringify({ 
-        error: error.message,
+        error: error instanceof Error ? error.message : 'Unknown error occurred',
         details: 'Please ensure the input is valid text and try again.'
       }),
       { 

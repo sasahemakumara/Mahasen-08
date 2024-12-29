@@ -30,16 +30,31 @@ export const FileUploader = ({ onUploadSuccess }: { onUploadSuccess: () => void 
       const text = await new Promise<string>((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = (e) => {
-          // Clean the text content by removing null bytes and invalid characters
-          const content = e.target?.result as string;
-          const cleanContent = content.replace(/\0/g, '').replace(/[\uFFFD\uFFFE\uFFFF]/g, '');
-          resolve(cleanContent);
+          if (!e.target?.result) {
+            reject(new Error('Failed to read file content'));
+            return;
+          }
+          // Ensure we have a string and clean it
+          const content = String(e.target.result)
+            .replace(/\0/g, '') // Remove null bytes
+            .replace(/[\uFFFD\uFFFE\uFFFF]/g, '') // Remove invalid Unicode
+            .trim(); // Remove whitespace
+          
+          if (!content) {
+            reject(new Error('File content is empty after cleaning'));
+            return;
+          }
+          
+          resolve(content);
         };
         reader.onerror = () => reject(new Error('Failed to read file'));
         reader.readAsText(selectedFile);
       });
+
+      console.log('File content length:', text.length);
+      console.log('First 100 characters:', text.substring(0, 100));
       
-      // Generate embedding using the updated model
+      // Generate embedding
       const { data: embeddingData, error: embeddingError } = await supabase.functions.invoke(
         'generate-embedding',
         {
@@ -47,7 +62,14 @@ export const FileUploader = ({ onUploadSuccess }: { onUploadSuccess: () => void 
         }
       );
 
-      if (embeddingError) throw embeddingError;
+      if (embeddingError) {
+        console.error('Embedding error:', embeddingError);
+        throw embeddingError;
+      }
+
+      if (!embeddingData?.embedding) {
+        throw new Error('No embedding data received');
+      }
 
       // Upload file to storage
       const fileExt = selectedFile.name.split(".").pop();
