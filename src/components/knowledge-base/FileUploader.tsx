@@ -37,6 +37,7 @@ export const FileUploader = ({ onUploadSuccess }: { onUploadSuccess: () => void 
               return;
             }
 
+            // Ensure we have non-empty content
             const content = result.trim();
             console.log('Raw content length:', content.length);
 
@@ -45,8 +46,8 @@ export const FileUploader = ({ onUploadSuccess }: { onUploadSuccess: () => void 
               return;
             }
 
-            // Clean the content
-            const cleanedContent = content
+            // Clean and validate the content
+            const cleanedContent = String(content)
               .replace(/\0/g, '')
               .replace(/[\uFFFD\uFFFE\uFFFF]/g, '')
               .trim();

@@ -39,7 +39,8 @@ serve(async (req) => {
     const requestData = await req.text();
     console.log('Raw request data:', requestData);
 
-    if (!requestData || requestData.trim().length === 0) {
+    if (!requestData) {
+      console.error('Empty request data received');
       throw new Error('Request body is empty');
     }
 
@@ -47,26 +48,27 @@ serve(async (req) => {
     try {
       body = JSON.parse(requestData);
     } catch (error) {
-      console.error('Error parsing JSON:', error);
+      console.error('JSON parsing error:', error);
       throw new Error('Invalid JSON in request body');
     }
 
     console.log('Parsed request body:', body);
 
-    // Validate text field exists and is a string
-    if (!body?.text || typeof body.text !== 'string') {
-      throw new Error('Request body must contain a valid text field');
+    // Strict validation of text field
+    if (!body || typeof body.text !== 'string') {
+      console.error('Invalid or missing text field:', body);
+      throw new Error('Request must contain a valid text field');
     }
 
     const inputText = body.text.trim();
     console.log('Input text length:', inputText.length);
 
     if (inputText.length === 0) {
-      throw new Error('Text field is empty');
+      throw new Error('Text field is empty after trimming');
     }
 
-    // Clean the text - only if it exists and is a string
-    const cleanedText = inputText
+    // Clean the text with explicit string conversion and null checks
+    const cleanedText = String(inputText)
       .replace(/\0/g, '')
       .replace(/[\uFFFD\uFFFE\uFFFF]/g, '')
       .trim();
