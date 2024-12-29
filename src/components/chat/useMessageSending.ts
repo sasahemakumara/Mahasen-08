@@ -35,12 +35,16 @@ export const useMessageSending = (
       
       if (isAIEnabled) {
         try {
-          // Generate embedding for the question
-          console.log('Generating embedding for question:', newMessage);
+          // Generate embedding for the question with explicit logging
+          console.log('Attempting to generate embedding for question:', newMessage);
           const { data: embeddingData, error: embeddingError } = await supabase.functions.invoke(
             'generate-embedding',
             {
-              body: { text: newMessage }
+              body: { 
+                text: newMessage,
+                model: "snowflake-arctic-embed2",
+                dimensions: 1024
+              }
             }
           );
 
@@ -49,15 +53,22 @@ export const useMessageSending = (
             throw embeddingError;
           }
 
-          if (!embeddingData || !embeddingData.embedding) {
-            console.error('No embedding returned from function');
-            throw new Error('Failed to generate embedding for question');
+          if (!embeddingData) {
+            console.error('No data returned from embedding function');
+            throw new Error('No embedding data received');
+          }
+
+          console.log('Embedding data received:', embeddingData);
+
+          if (!embeddingData.embedding) {
+            console.error('No embedding in response data');
+            throw new Error('No embedding in response');
           }
 
           console.log('Successfully generated question embedding');
 
           // Search knowledge base with the question embedding
-          console.log('Searching knowledge base with question embedding...');
+          console.log('Searching knowledge base with embedding...');
           const { data: matches, error: searchError } = await supabase.rpc(
             'match_knowledge_base',
             {
@@ -72,20 +83,21 @@ export const useMessageSending = (
             throw searchError;
           }
 
-          console.log('Found knowledge base matches:', matches);
+          console.log('Knowledge base matches:', matches);
 
-          // Prepare context from knowledge base matches
+          // Format context from knowledge base matches
           if (matches && matches.length > 0) {
             context = `Here is the relevant information from our knowledge base:\n\n${matches
-              .map((match, index) => `[Similarity: ${(match.similarity * 100).toFixed(2)}%]\n${match.content}\n`)
+              .map((match, index) => `[Source ${index + 1} - Similarity: ${(match.similarity * 100).toFixed(2)}%]\n${match.content}\n`)
               .join('\n')}`;
             
             context += '\n\nPlease use this information to answer the following question. If the information provided is not relevant to the question, you may provide a general response.';
+            
+            console.log('Prepared context with knowledge base matches');
           } else {
             context = 'No relevant information found in the knowledge base. Please provide a general response.';
+            console.log('No relevant matches found in knowledge base');
           }
-
-          console.log('Prepared context:', context);
         } catch (error) {
           console.error('Error in RAG process:', error);
           context = 'Error accessing knowledge base. Providing general response.';
@@ -101,7 +113,10 @@ export const useMessageSending = (
         context: context
       };
 
-      console.log('Sending message with payload:', messagePayload);
+      console.log('Sending message with payload:', {
+        ...messagePayload,
+        context: context.substring(0, 100) + '...' // Log truncated context for brevity
+      });
 
       const { data, error: whatsappError } = await supabase.functions.invoke(
         'send-whatsapp',
