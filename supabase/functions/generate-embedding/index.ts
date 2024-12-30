@@ -1,94 +1,55 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3'
+import { pipeline } from 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.15.1'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-// Initialize the AI session once for reuse
-const session = new Supabase.ai.Session('gte-small');
-
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { headers: corsHeaders })
   }
 
   try {
-    console.log('Generate embedding function called');
-
-    // Parse and validate request body
-    const requestData = await req.text();
-    console.log('Raw request data:', requestData);
-
-    if (!requestData) {
-      console.error('Empty request data received');
-      throw new Error('Request body is empty');
+    const { input } = await req.json()
+    
+    if (!input || typeof input !== 'string') {
+      throw new Error('Input text is required')
     }
 
-    let body;
-    try {
-      body = JSON.parse(requestData);
-      console.log('Parsed request body:', body);
-    } catch (error) {
-      console.error('JSON parsing error:', error);
-      throw new Error('Invalid JSON in request body');
-    }
-
-    // Validate text field
-    if (!body?.text || typeof body.text !== 'string') {
-      console.error('Invalid or missing text field:', body);
-      throw new Error('Request must contain a valid text field');
-    }
-
-    // Clean and prepare the text
-    const text = body.text.trim();
-    if (!text) {
-      throw new Error('Text field is empty after trimming');
-    }
-
-    console.log('Processing text:', text);
-    console.log('Text length:', text.length);
-
-    // Generate embedding using the AI session
-    console.log('Generating embedding...');
-    const embedding = await session.run(text, {
-      mean_pool: true,
+    // Initialize the pipeline
+    const pipe = await pipeline('feature-extraction', 'Supabase/gte-small')
+    
+    // Generate embedding
+    const output = await pipe(input, {
+      pooling: 'mean',
       normalize: true,
-    });
+    })
 
-    if (!embedding) {
-      console.error('Failed to generate embedding');
-      throw new Error('Failed to generate embedding');
-    }
-
-    console.log('Successfully generated embedding');
-    console.log('Embedding length:', embedding.length);
+    // Get the embedding from the output
+    const embedding = Array.from(output.data)
 
     return new Response(
       JSON.stringify({ embedding }),
       { 
         headers: {
           ...corsHeaders,
-          'Content-Type': 'application/json'
-        }
-      }
-    );
+          'Content-Type': 'application/json',
+        },
+      },
+    )
   } catch (error) {
-    console.error('Error in generate-embedding function:', error);
-    
     return new Response(
-      JSON.stringify({ 
-        error: error instanceof Error ? error.message : 'Unknown error occurred',
-        details: 'Please ensure the input is valid text and try again.'
-      }),
+      JSON.stringify({ error: error.message }),
       { 
-        status: 500,
+        status: 400,
         headers: {
           ...corsHeaders,
-          'Content-Type': 'application/json'
-        }
-      }
-    );
+          'Content-Type': 'application/json',
+        },
+      },
+    )
   }
-});
+})

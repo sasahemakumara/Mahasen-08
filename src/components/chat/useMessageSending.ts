@@ -35,32 +35,23 @@ export const useMessageSending = (
       
       if (isAIEnabled) {
         try {
-          // Generate embedding for the question with explicit logging
-          console.log('Attempting to generate embedding for question:', newMessage);
+          // Generate embedding for the question
           const { data: embeddingData, error: embeddingError } = await supabase.functions.invoke(
             'generate-embedding',
             {
-              body: { text: newMessage }
+              body: { input: newMessage }  // Changed from 'text' to 'input' to match Edge Function expectation
             }
           );
 
           if (embeddingError) {
-            console.error('Question embedding error:', embeddingError);
             throw embeddingError;
           }
 
           if (!embeddingData?.embedding) {
-            console.error('No embedding data received:', embeddingData);
             throw new Error('No embedding data received');
           }
 
-          console.log('Embedding generated successfully:', {
-            length: embeddingData.embedding.length,
-            sample: embeddingData.embedding.slice(0, 5)
-          });
-
           // Search knowledge base with hybrid search
-          console.log('Searching knowledge base with hybrid search...');
           const { data: matches, error: searchError } = await supabase.rpc(
             'match_knowledge_base',
             {
@@ -74,11 +65,8 @@ export const useMessageSending = (
           );
 
           if (searchError) {
-            console.error('Knowledge base search error:', searchError);
             throw searchError;
           }
-
-          console.log('Knowledge base matches:', matches);
 
           // Format context from knowledge base matches
           if (matches && matches.length > 0) {
@@ -87,11 +75,8 @@ export const useMessageSending = (
               .join('\n')}`;
             
             context += '\n\nPlease use this information to answer the following question. If the information provided is not relevant to the question, you may provide a general response.';
-            
-            console.log('Prepared context with knowledge base matches');
           } else {
             context = 'No relevant information found in the knowledge base. Please provide a general response.';
-            console.log('No relevant matches found in knowledge base');
           }
         } catch (error) {
           console.error('Error in RAG process:', error);
@@ -108,11 +93,6 @@ export const useMessageSending = (
         context: context
       };
 
-      console.log('Sending message with payload:', {
-        ...messagePayload,
-        context: context.substring(0, 100) + '...' // Log truncated context for brevity
-      });
-
       const { data, error: whatsappError } = await supabase.functions.invoke(
         'send-whatsapp',
         {
@@ -121,11 +101,8 @@ export const useMessageSending = (
       );
 
       if (whatsappError) {
-        console.error('WhatsApp sending error:', whatsappError);
         throw whatsappError;
       }
-
-      console.log('WhatsApp response:', data);
 
       refetchMessages();
       
