@@ -54,7 +54,10 @@ export const useMessageSending = (
             throw new Error('No embedding data received');
           }
 
-          console.log('Embedding data received:', embeddingData);
+          console.log('Embedding generated successfully:', {
+            length: embeddingData.embedding.length,
+            sample: embeddingData.embedding.slice(0, 5)
+          });
 
           // Search knowledge base with hybrid search
           console.log('Searching knowledge base with hybrid search...');
