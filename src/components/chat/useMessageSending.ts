@@ -56,13 +56,6 @@ export const useMessageSending = (
 
           console.log('Embedding data received:', embeddingData);
 
-          if (!embeddingData.embedding) {
-            console.error('No embedding in response data');
-            throw new Error('No embedding in response');
-          }
-
-          console.log('Successfully generated question embedding');
-
           // Search knowledge base with the question embedding
           console.log('Searching knowledge base with embedding...');
           const { data: matches, error: searchError } = await supabase.rpc(
