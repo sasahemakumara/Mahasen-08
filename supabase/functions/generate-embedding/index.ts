@@ -15,6 +15,8 @@ serve(async (req) => {
   }
 
   try {
+    console.log('Generate embedding function called');
+
     // Parse and validate request body
     const requestData = await req.text();
     console.log('Raw request data:', requestData);
@@ -27,17 +29,16 @@ serve(async (req) => {
     let body;
     try {
       body = JSON.parse(requestData);
+      console.log('Parsed request body:', body);
     } catch (error) {
       console.error('JSON parsing error:', error);
       throw new Error('Invalid JSON in request body');
     }
 
-    console.log('Parsed request body:', body);
-
     // Validate text field
-    if (!body?.text) {
+    if (!body?.text || typeof body.text !== 'string') {
       console.error('Invalid or missing text field:', body);
-      throw new Error('Request must contain a text field');
+      throw new Error('Request must contain a valid text field');
     }
 
     // Clean and prepare the text
@@ -46,8 +47,8 @@ serve(async (req) => {
       throw new Error('Text field is empty after trimming');
     }
 
-    console.log('Processing text length:', text.length);
-    console.log('Text sample:', text.substring(0, 100));
+    console.log('Processing text:', text);
+    console.log('Text length:', text.length);
 
     // Generate embedding using the AI session
     console.log('Generating embedding...');
@@ -57,10 +58,12 @@ serve(async (req) => {
     });
 
     if (!embedding) {
+      console.error('Failed to generate embedding');
       throw new Error('Failed to generate embedding');
     }
 
     console.log('Successfully generated embedding');
+    console.log('Embedding length:', embedding.length);
 
     return new Response(
       JSON.stringify({ embedding }),

@@ -49,8 +49,8 @@ export const useMessageSending = (
             throw embeddingError;
           }
 
-          if (!embeddingData) {
-            console.error('No data returned from embedding function');
+          if (!embeddingData?.embedding) {
+            console.error('No embedding data received:', embeddingData);
             throw new Error('No embedding data received');
           }
 
