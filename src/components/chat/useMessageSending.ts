@@ -56,14 +56,17 @@ export const useMessageSending = (
 
           console.log('Embedding data received:', embeddingData);
 
-          // Search knowledge base with the question embedding
-          console.log('Searching knowledge base with embedding...');
+          // Search knowledge base with hybrid search
+          console.log('Searching knowledge base with hybrid search...');
           const { data: matches, error: searchError } = await supabase.rpc(
             'match_knowledge_base',
             {
+              query_text: newMessage,
               query_embedding: embeddingData.embedding,
-              match_threshold: 0.5,
-              match_count: 5
+              match_count: 5,
+              full_text_weight: 1.0,
+              semantic_weight: 1.0,
+              match_threshold: 0.5
             }
           );
 

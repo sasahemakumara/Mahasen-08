@@ -47,6 +47,7 @@ export type Database = {
           embedding: string | null
           file_path: string
           filename: string
+          fts: unknown | null
           id: string
           size: number
           user_id: string
@@ -58,6 +59,7 @@ export type Database = {
           embedding?: string | null
           file_path: string
           filename: string
+          fts?: unknown | null
           id?: string
           size: number
           user_id: string
@@ -69,6 +71,7 @@ export type Database = {
           embedding?: string | null
           file_path?: string
           filename?: string
+          fts?: unknown | null
           id?: string
           size?: number
           user_id?: string
@@ -229,18 +232,35 @@ export type Database = {
             }
             Returns: unknown
           }
-      match_knowledge_base: {
-        Args: {
-          query_embedding: string
-          match_threshold: number
-          match_count: number
-        }
-        Returns: {
-          id: string
-          content: string
-          similarity: number
-        }[]
-      }
+      match_knowledge_base:
+        | {
+            Args: {
+              query_embedding: string
+              match_threshold: number
+              match_count: number
+            }
+            Returns: {
+              id: string
+              content: string
+              similarity: number
+            }[]
+          }
+        | {
+            Args: {
+              query_text: string
+              query_embedding: string
+              match_count?: number
+              full_text_weight?: number
+              semantic_weight?: number
+              match_threshold?: number
+              rrf_k?: number
+            }
+            Returns: {
+              id: string
+              content: string
+              similarity: number
+            }[]
+          }
       sparsevec_out: {
         Args: {
           "": unknown
