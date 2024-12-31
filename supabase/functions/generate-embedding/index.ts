@@ -1,5 +1,4 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3'
 import { pipeline } from 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.15.1'
 
 const corsHeaders = {
@@ -19,8 +18,11 @@ serve(async (req) => {
       throw new Error('Input text is required')
     }
 
-    // Initialize the pipeline
-    const pipe = await pipeline('feature-extraction', 'Supabase/gte-small')
+    // Initialize the pipeline with remote model loading
+    const pipe = await pipeline('feature-extraction', 'Supabase/gte-small', {
+      revision: 'main',
+      quantized: false
+    })
     
     // Generate embedding
     const output = await pipe(input, {
@@ -41,10 +43,11 @@ serve(async (req) => {
       },
     )
   } catch (error) {
+    console.error('Error generating embedding:', error)
     return new Response(
       JSON.stringify({ error: error.message }),
       { 
-        status: 400,
+        status: 500,
         headers: {
           ...corsHeaders,
           'Content-Type': 'application/json',
