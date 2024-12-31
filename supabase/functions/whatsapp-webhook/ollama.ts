@@ -21,7 +21,7 @@ export async function getOllamaResponse(prompt: string, context: string = '', OL
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: "llama2:latest",
+        model: "llama3.2:latest",
         prompt: `${systemPrompt}\n\nUser Question: ${prompt}\n\nPlease provide your response:`,
         stream: false
       })
