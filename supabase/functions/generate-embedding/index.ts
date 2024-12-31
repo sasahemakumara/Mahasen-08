@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { Pipeline } from 'https://cdn.jsdelivr.net/npm/@xenova/transformers';
+import { pipeline } from 'npm:@huggingface/transformers';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -21,17 +21,21 @@ serve(async (req) => {
 
     console.log('Received text for embedding:', text.substring(0, 100) + '...');
 
-    // Initialize the pipeline
-    const pipe = await Pipeline.getInstance('feature-extraction', 'Supabase/gte-small');
-    
+    // Create a feature-extraction pipeline
+    const extractor = await pipeline(
+      "feature-extraction",
+      "Supabase/gte-small",
+      { quantized: false }
+    );
+
     // Generate embedding
-    const output = await pipe(text, {
-      pooling: 'mean',
-      normalize: true,
+    const output = await extractor(text, {
+      pooling: "mean",
+      normalize: true
     });
 
     // Convert to regular array
-    const embedding = Array.from(output.data);
+    const embedding = Array.from(output.tolist()[0]);
 
     console.log('Successfully generated embedding');
 
