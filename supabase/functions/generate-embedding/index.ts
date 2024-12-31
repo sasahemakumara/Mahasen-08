@@ -1,13 +1,10 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3';
+import { Pipeline } from 'https://cdn.jsdelivr.net/npm/@xenova/transformers';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
-
-// Initialize the Supabase AI session
-const session = new Supabase.ai.Session('gte-small');
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -16,22 +13,25 @@ serve(async (req) => {
   }
 
   try {
-    console.log('Received request to generate embedding');
-    
-    // Extract input from request body
-    const { input } = await req.json();
-    
-    if (!input || typeof input !== 'string') {
+    const { text } = await req.json();
+
+    if (!text || typeof text !== 'string') {
       throw new Error('Input text is required and must be a string');
     }
 
-    console.log('Generating embedding for input:', input);
+    console.log('Received text for embedding:', text.substring(0, 100) + '...');
 
-    // Generate embedding using Supabase AI session
-    const embedding = await session.run(input, {
-      mean_pool: true,  // Use mean pooling for sentence embeddings
-      normalize: true,  // Normalize the embedding vector
+    // Initialize the pipeline
+    const pipe = await Pipeline.getInstance('feature-extraction', 'Supabase/gte-small');
+    
+    // Generate embedding
+    const output = await pipe(text, {
+      pooling: 'mean',
+      normalize: true,
     });
+
+    // Convert to regular array
+    const embedding = Array.from(output.data);
 
     console.log('Successfully generated embedding');
 

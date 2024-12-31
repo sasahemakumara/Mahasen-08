@@ -15,9 +15,10 @@ export const FileUploader = ({ onUploadSuccess }: { onUploadSuccess: () => void 
     const cleanedText = text
       .replace(/\0/g, '') // Remove null bytes
       .replace(/[\x00-\x09\x0B-\x1F\x7F]/g, '') // Remove control characters
-      .replace(/\\u0000/g, ''); // Remove Unicode escape sequences for null
+      .replace(/\\u0000/g, '') // Remove Unicode escape sequences for null
+      .trim();
 
-    return cleanedText.trim();
+    return cleanedText;
   };
 
   const validateFileContent = (content: string): boolean => {
@@ -25,7 +26,7 @@ export const FileUploader = ({ onUploadSuccess }: { onUploadSuccess: () => void 
       throw new Error('File is empty');
     }
     
-    // Check for minimum content length (e.g., 10 characters)
+    // Check for minimum content length
     if (content.length < 10) {
       throw new Error('File content is too short');
     }
@@ -64,6 +65,7 @@ export const FileUploader = ({ onUploadSuccess }: { onUploadSuccess: () => void 
             const cleanedContent = cleanTextContent(result);
             console.log('Content length before cleaning:', result.length);
             console.log('Content length after cleaning:', cleanedContent.length);
+            console.log('First 100 characters of cleaned content:', cleanedContent.substring(0, 100));
 
             if (validateFileContent(cleanedContent)) {
               resolve(cleanedContent);
