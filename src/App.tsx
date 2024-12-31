@@ -39,7 +39,10 @@ const App = () => {
     const checkSession = async () => {
       try {
         const { data: { session }, error } = await supabase.auth.getSession();
-        if (error) throw error;
+        if (error) {
+          console.error("Session check error:", error);
+          throw error;
+        }
         
         if (mounted) {
           setIsAuthenticated(!!session);
@@ -53,11 +56,14 @@ const App = () => {
         if (mounted) {
           setIsAuthenticated(false);
           queryClient.clear();
-          toast({
-            variant: "destructive",
-            title: "Authentication Error",
-            description: "Please try logging in again.",
-          });
+          // Only show toast for non-refresh token errors
+          if (error.message !== "Invalid Refresh Token: Refresh Token Not Found") {
+            toast({
+              variant: "destructive",
+              title: "Authentication Error",
+              description: "Please try logging in again.",
+            });
+          }
         }
       } finally {
         if (mounted) {
@@ -73,18 +79,28 @@ const App = () => {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (mounted) {
+        console.log("Auth state changed:", event);
         setIsAuthenticated(!!session);
         
         // Handle session changes
-        if (event === 'SIGNED_OUT') {
-          queryClient.clear();
-          toast({
-            variant: "destructive",
-            title: "Session Ended",
-            description: "Please log in again to continue.",
-          });
-        } else if (event === 'TOKEN_REFRESHED') {
-          console.log('Session token refreshed successfully');
+        switch (event) {
+          case 'SIGNED_OUT':
+            queryClient.clear();
+            toast({
+              variant: "destructive",
+              title: "Session Ended",
+              description: "Please log in again to continue.",
+            });
+            break;
+          case 'TOKEN_REFRESHED':
+            console.log('Session token refreshed successfully');
+            break;
+          case 'SIGNED_IN':
+            console.log('User signed in successfully');
+            break;
+          case 'USER_UPDATED':
+            console.log('User data updated');
+            break;
         }
       }
     });
