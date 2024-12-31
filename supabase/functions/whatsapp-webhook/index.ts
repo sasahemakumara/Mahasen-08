@@ -65,8 +65,51 @@ serve(async (req) => {
 
       console.log(`Received message from ${userName} (${userId}): ${userMessage}`);
 
-      // Get AI response
-      const aiResponse = await getOllamaResponse(userMessage, OLLAMA_BASE_URL);
+      // Generate embedding for the user's message
+      const { data: embeddingData, error: embeddingError } = await supabase.functions.invoke(
+        'generate-embedding',
+        {
+          body: { input: userMessage }
+        }
+      );
+
+      if (embeddingError) {
+        console.error('Error generating embedding:', embeddingError);
+        throw embeddingError;
+      }
+
+      // Search knowledge base with hybrid search
+      const { data: matches, error: searchError } = await supabase.rpc(
+        'match_knowledge_base',
+        {
+          query_text: userMessage,
+          query_embedding: embeddingData.embedding,
+          match_count: 5,
+          full_text_weight: 1.0,
+          semantic_weight: 1.0,
+          match_threshold: 0.5
+        }
+      );
+
+      if (searchError) {
+        console.error('Error searching knowledge base:', searchError);
+        throw searchError;
+      }
+
+      // Format context from knowledge base matches
+      let context = '';
+      if (matches && matches.length > 0) {
+        context = `Here is the relevant information from our knowledge base:\n\n${matches
+          .map((match, index) => `[Source ${index + 1} - Similarity: ${(match.similarity * 100).toFixed(2)}%]\n${match.content}\n`)
+          .join('\n')}`;
+        
+        context += '\n\nPlease use this information to answer the following question. If the information provided is not relevant to the question, you may provide a general response.';
+      } else {
+        context = 'No relevant information found in the knowledge base. Please provide a general response.';
+      }
+
+      // Get AI response using context from knowledge base
+      const aiResponse = await getOllamaResponse(userMessage, context, OLLAMA_BASE_URL);
       console.log('AI Response:', aiResponse);
       
       // Send response back via WhatsApp

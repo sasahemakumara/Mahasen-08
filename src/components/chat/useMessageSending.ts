@@ -31,66 +31,12 @@ export const useMessageSending = (
         throw dbError;
       }
 
-      let context = '';
-      
-      if (isAIEnabled) {
-        try {
-          // Generate embedding for the question
-          const { data: embeddingData, error: embeddingError } = await supabase.functions.invoke(
-            'generate-embedding',
-            {
-              body: { input: newMessage }  // Changed from 'text' to 'input' to match Edge Function expectation
-            }
-          );
-
-          if (embeddingError) {
-            throw embeddingError;
-          }
-
-          if (!embeddingData?.embedding) {
-            throw new Error('No embedding data received');
-          }
-
-          // Search knowledge base with hybrid search
-          const { data: matches, error: searchError } = await supabase.rpc(
-            'match_knowledge_base',
-            {
-              query_text: newMessage,
-              query_embedding: embeddingData.embedding,
-              match_count: 5,
-              full_text_weight: 1.0,
-              semantic_weight: 1.0,
-              match_threshold: 0.5
-            }
-          );
-
-          if (searchError) {
-            throw searchError;
-          }
-
-          // Format context from knowledge base matches
-          if (matches && matches.length > 0) {
-            context = `Here is the relevant information from our knowledge base:\n\n${matches
-              .map((match, index) => `[Source ${index + 1} - Similarity: ${(match.similarity * 100).toFixed(2)}%]\n${match.content}\n`)
-              .join('\n')}`;
-            
-            context += '\n\nPlease use this information to answer the following question. If the information provided is not relevant to the question, you may provide a general response.';
-          } else {
-            context = 'No relevant information found in the knowledge base. Please provide a general response.';
-          }
-        } catch (error) {
-          console.error('Error in RAG process:', error);
-          context = 'Error accessing knowledge base. Providing general response.';
-        }
-      }
-
       // Send the message through WhatsApp using the Edge Function
       const messagePayload: WhatsAppMessage = {
         to: contactNumber,
         message: newMessage,
         type: "text",
-        useAI: isAIEnabled,
-        context: context
+        useAI: false // Always set to false since this is an agent message
       };
 
       const { data, error: whatsappError } = await supabase.functions.invoke(
