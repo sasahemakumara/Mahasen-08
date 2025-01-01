@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import type { AISettings as AISettingsType, AITone } from "@/types/ai";
+import type { AITone } from "@/types/ai";
 
 const AISettings = () => {
   const navigate = useNavigate();
@@ -36,11 +36,16 @@ const AISettings = () => {
         }
       } catch (error) {
         console.error('Error loading AI settings:', error);
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Failed to load AI settings. Please try again.",
+        });
       }
     };
 
     loadSettings();
-  }, []);
+  }, [toast]);
 
   const handleSave = async () => {
     setIsLoading(true);

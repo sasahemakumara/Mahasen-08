@@ -65,11 +65,22 @@ serve(async (req) => {
 
       console.log(`Received message from ${userName} (${userId}): ${userMessage}`);
 
+      // Get AI settings
+      const { data: aiSettings, error: settingsError } = await supabase
+        .from('ai_settings')
+        .select('*')
+        .single();
+
+      if (settingsError) {
+        console.error('Error fetching AI settings:', settingsError);
+        throw settingsError;
+      }
+
       // Generate embedding for the user's message
       const { data: embeddingData, error: embeddingError } = await supabase.functions.invoke(
         'generate-embedding',
         {
-          body: { text: userMessage }  // Changed from 'input' to 'text'
+          body: { text: userMessage }
         }
       );
 
@@ -96,20 +107,24 @@ serve(async (req) => {
         throw searchError;
       }
 
-      // Format context from knowledge base matches
+      // Format context from knowledge base matches and AI settings
       let context = '';
       if (matches && matches.length > 0) {
         context = `Here is the relevant information from our knowledge base:\n\n${matches
           .map((match, index) => `[Source ${index + 1} - Similarity: ${(match.similarity * 100).toFixed(2)}%]\n${match.content}\n`)
           .join('\n')}`;
-        
-        context += '\n\nYou are the official Customer support AI assitant of Bellose. Please use this information to answer the following question. If the information provided is not relevant to the question, you may provide a Professional general response.';
-      } else {
-        context = 'No relevant information found in the knowledge base. Please provide a general response.';
       }
 
-      // Get AI response using context from knowledge base
-      const aiResponse = await getOllamaResponse(userMessage, context, OLLAMA_BASE_URL);
+      // Add AI settings to context
+      const aiContext = `You are the official Customer support AI assistant of Bellose. 
+Your tone should be ${aiSettings.tone.toLowerCase()}. 
+${aiSettings.behaviour ? `Additional behavior instructions: ${aiSettings.behaviour}` : ''}
+Please use the following information to answer the question. If the information provided is not relevant to the question, you may provide a ${aiSettings.tone.toLowerCase()} general response.
+
+${context || 'No specific information found in the knowledge base. Please provide a general response.'}`;
+
+      // Get AI response using context from knowledge base and AI settings
+      const aiResponse = await getOllamaResponse(userMessage, aiContext, OLLAMA_BASE_URL);
       console.log('AI Response:', aiResponse);
       
       // Send response back via WhatsApp
