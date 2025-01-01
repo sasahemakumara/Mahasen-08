@@ -15,6 +15,7 @@ import PlatformChats from "./pages/PlatformChats";
 import ChatConversation from "./pages/ChatConversation";
 import About from "./pages/About";
 import KnowledgeBase from "./pages/KnowledgeBase";
+import AISettings from "./pages/AISettings";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -158,6 +159,16 @@ const App = () => {
                 element={
                   isAuthenticated ? (
                     <KnowledgeBase />
+                  ) : (
+                    <Navigate to="/login" replace />
+                  )
+                }
+              />
+              <Route
+                path="/ai-settings"
+                element={
+                  isAuthenticated ? (
+                    <AISettings />
                   ) : (
                     <Navigate to="/login" replace />
                   )

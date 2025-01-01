@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { MessageSquare, Facebook, Instagram, FileText } from "lucide-react";
+import { MessageSquare, Facebook, Instagram, FileText, Settings } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -76,10 +76,26 @@ const Dashboard = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex justify-between items-center mb-8">
           <div>
-            <h1 className="text-3xl font-bold mb-2">Mahasen AI</h1>
+            <h1 className="text-3xl font-bold">Mahasen AI</h1>
             <p className="text-slate-600 dark:text-slate-400">Welcome, {userName}</p>
           </div>
           <div className="flex items-center gap-4">
+            <Button
+              variant="outline"
+              onClick={() => navigate("/knowledge-base")}
+              className="flex items-center gap-2"
+            >
+              <FileText className="h-4 w-4" />
+              Manage Files
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => navigate("/ai-settings")}
+              className="flex items-center gap-2"
+            >
+              <Settings className="h-4 w-4" />
+              AI Settings
+            </Button>
             <ThemeToggle />
             <Button variant="outline" onClick={handleSignOut}>
               Sign Out
