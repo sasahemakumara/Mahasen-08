@@ -77,10 +77,10 @@ export const FileUploader = ({ onUploadSuccess }: { onUploadSuccess: () => void 
         reader.readAsText(selectedFile);
       });
 
-      // Generate embedding
-      console.log('Requesting embedding generation...');
+      // Generate embedding using the new generate-file-embedding function
+      console.log('Requesting file embedding generation...');
       const { data: embeddingData, error: embeddingError } = await supabase.functions.invoke(
-        'generate-embedding',
+        'generate-file-embedding',
         {
           body: { text }
         }

@@ -12,7 +12,7 @@ serve(async (req) => {
   }
 
   try {
-    console.log('Received request to generate question embedding');
+    console.log('Received request to generate file embedding');
     
     // Extract input from request body
     const { text } = await req.json();
@@ -21,16 +21,16 @@ serve(async (req) => {
       throw new Error('Input text is required and must be a string');
     }
 
-    console.log('Initializing embedding session for question');
+    console.log('Initializing embedding session for file');
     const session = new Supabase.ai.Session('gte-small');
 
-    console.log('Generating embedding for question');
+    console.log('Generating embedding for file content');
     const embedding = await session.run(text, {
       mean_pool: true,
       normalize: true,
     });
 
-    console.log('Successfully generated question embedding');
+    console.log('Successfully generated file embedding');
 
     return new Response(
       JSON.stringify({ embedding }),
@@ -42,11 +42,11 @@ serve(async (req) => {
       }
     );
   } catch (error) {
-    console.error('Error in generate-embedding function:', error);
+    console.error('Error in generate-file-embedding function:', error);
     return new Response(
       JSON.stringify({ 
         error: error.message,
-        details: 'Failed to generate embedding'
+        details: 'Failed to generate file embedding'
       }),
       { 
         status: 500,
