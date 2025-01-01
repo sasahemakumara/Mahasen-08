@@ -103,7 +103,7 @@ serve(async (req) => {
           .map((match, index) => `[Source ${index + 1} - Similarity: ${(match.similarity * 100).toFixed(2)}%]\n${match.content}\n`)
           .join('\n')}`;
         
-        context += '\n\nPlease use this information to answer the following question. If the information provided is not relevant to the question, you may provide a general response.';
+        context += '\n\nYou are the official Customer support AI assitant of Bellose. Please use this information to answer the following question. If the information provided is not relevant to the question, you may provide a Professional general response.';
       } else {
         context = 'No relevant information found in the knowledge base. Please provide a general response.';
       }
