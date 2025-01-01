@@ -9,6 +9,30 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      ai_settings: {
+        Row: {
+          id: number
+          tone: Database["public"]["Enums"]["ai_tone"]
+          behaviour: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: number
+          tone?: Database["public"]["Enums"]["ai_tone"]
+          behaviour?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: number
+          tone?: Database["public"]["Enums"]["ai_tone"]
+          behaviour?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       conversations: {
         Row: {
           ai_enabled: boolean | null
@@ -324,6 +348,7 @@ export type Database = {
       }
     }
     Enums: {
+      ai_tone: "Professional" | "Friendly" | "Empathetic" | "Playful"
       message_status: "sent" | "received"
       platform_type: "whatsapp" | "facebook" | "instagram"
     }

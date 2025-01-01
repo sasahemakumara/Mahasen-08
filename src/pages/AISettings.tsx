@@ -11,11 +11,12 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import type { AISettings as AISettingsType, AITone } from "@/types/ai";
 
 const AISettings = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [tone, setTone] = useState("Professional");
+  const [tone, setTone] = useState<AITone>("Professional");
   const [behaviour, setBehaviour] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
@@ -30,8 +31,8 @@ const AISettings = () => {
         if (error) throw error;
 
         if (data) {
-          setTone(data.tone);
-          setBehaviour(data.behaviour);
+          setTone(data.tone as AITone);
+          setBehaviour(data.behaviour || "");
         }
       } catch (error) {
         console.error('Error loading AI settings:', error);
