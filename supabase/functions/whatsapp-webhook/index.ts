@@ -116,7 +116,7 @@ serve(async (req) => {
       }
 
       // Add AI settings to context
-      const aiContext = `You are the official Customer support AI assistant of Bellose. 
+      const aiContext = `You are an Helpful Customer support AI. 
 Your tone should be ${aiSettings.tone.toLowerCase()}. 
 ${aiSettings.behaviour ? `Additional behavior instructions: ${aiSettings.behaviour}` : ''}
 Please use the following information to answer the question. If the information provided is not relevant to the question, you may provide a ${aiSettings.tone.toLowerCase()} general response.

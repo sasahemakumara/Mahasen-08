@@ -13,7 +13,7 @@ export async function getOllamaResponse(prompt: string, context: string = '', OL
 
     const systemPrompt = context ? 
       `You are a helpful AI assistant with access to a knowledge base. ${context}` :
-      'You are a helpful AI assistant. Please provide a general response if no specific information is available.';
+      'Please provide a general response if no specific information is available.';
 
     console.log('Sending request to Ollama with prompt:', prompt);
 

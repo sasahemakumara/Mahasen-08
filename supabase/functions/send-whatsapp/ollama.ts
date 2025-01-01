@@ -4,7 +4,7 @@ export async function getOllamaResponse(prompt: string, OLLAMA_BASE_URL: string,
     
     const systemPrompt = context ? 
       `You are a helpful AI assistant with access to a knowledge base. ${context}` :
-      'You are a helpful AI assistant. Please provide a general response if no specific information is available.';
+      'Please provide a general response if no specific information is available.';
 
     const ollamaUrl = `${OLLAMA_BASE_URL}/api/generate`;
     console.log('Full Ollama URL:', ollamaUrl);
