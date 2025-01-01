@@ -84,7 +84,10 @@ const AISettings = () => {
         <div className="space-y-8 bg-white dark:bg-slate-900 p-6 rounded-lg shadow">
           <div className="space-y-4">
             <label className="text-lg font-medium">AI Tone</label>
-            <Select value={tone} onValueChange={setTone}>
+            <Select 
+              value={tone} 
+              onValueChange={(value: string) => setTone(value as AITone)}
+            >
               <SelectTrigger className="w-full">
                 <SelectValue placeholder="Select tone" />
               </SelectTrigger>

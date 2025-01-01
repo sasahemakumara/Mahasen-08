@@ -11,24 +11,24 @@ export type Database = {
     Tables: {
       ai_settings: {
         Row: {
-          id: number
-          tone: Database["public"]["Enums"]["ai_tone"]
           behaviour: string | null
           created_at: string
+          id: number
+          tone: Database["public"]["Enums"]["ai_tone"]
           updated_at: string
         }
         Insert: {
-          id?: number
-          tone?: Database["public"]["Enums"]["ai_tone"]
           behaviour?: string | null
           created_at?: string
+          id?: number
+          tone?: Database["public"]["Enums"]["ai_tone"]
           updated_at?: string
         }
         Update: {
-          id?: number
-          tone?: Database["public"]["Enums"]["ai_tone"]
           behaviour?: string | null
           created_at?: string
+          id?: number
+          tone?: Database["public"]["Enums"]["ai_tone"]
           updated_at?: string
         }
         Relationships: []
