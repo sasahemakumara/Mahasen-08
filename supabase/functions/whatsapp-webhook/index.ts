@@ -69,7 +69,7 @@ serve(async (req) => {
       const { data: embeddingData, error: embeddingError } = await supabase.functions.invoke(
         'generate-embedding',
         {
-          body: { input: userMessage }
+          body: { text: userMessage }  // Changed from 'input' to 'text'
         }
       );
 
