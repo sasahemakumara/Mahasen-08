@@ -12,6 +12,8 @@ export type Database = {
       ai_settings: {
         Row: {
           behaviour: string | null
+          context_memory_length: number | null
+          conversation_timeout_hours: number | null
           created_at: string
           id: number
           tone: Database["public"]["Enums"]["ai_tone"]
@@ -19,6 +21,8 @@ export type Database = {
         }
         Insert: {
           behaviour?: string | null
+          context_memory_length?: number | null
+          conversation_timeout_hours?: number | null
           created_at?: string
           id?: number
           tone?: Database["public"]["Enums"]["ai_tone"]
@@ -26,6 +30,8 @@ export type Database = {
         }
         Update: {
           behaviour?: string | null
+          context_memory_length?: number | null
+          conversation_timeout_hours?: number | null
           created_at?: string
           id?: number
           tone?: Database["public"]["Enums"]["ai_tone"]
