@@ -3,6 +3,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { useToast } from "@/hooks/use-toast";
 
 interface AdvancedSettingsProps {
   contextMemoryLength: string;
@@ -18,12 +19,36 @@ export const AdvancedSettings = ({
   onTimeoutChange,
 }: AdvancedSettingsProps) => {
   const [isOpen, setIsOpen] = useState(false);
+  const { toast } = useToast();
+
+  const handleTimeoutChange = (value: string) => {
+    const numValue = parseInt(value);
+    if (isNaN(numValue)) {
+      toast({
+        variant: "destructive",
+        title: "Invalid input",
+        description: "Please enter a valid number between 1 and 6",
+      });
+      return;
+    }
+
+    if (numValue < 1 || numValue > 6) {
+      toast({
+        variant: "destructive",
+        title: "Invalid range",
+        description: "Timeout must be between 1 and 6 hours",
+      });
+      return;
+    }
+
+    onTimeoutChange(numValue);
+  };
 
   return (
     <Collapsible
       open={isOpen}
       onOpenChange={setIsOpen}
-      className="border-2 border-red-500 rounded-lg"
+      className="border rounded-lg"
     >
       <CollapsibleTrigger className="flex w-full justify-between items-center p-4 hover:bg-slate-50 dark:hover:bg-slate-800">
         <h2 className="text-lg font-medium">Advanced Settings</h2>
@@ -57,12 +82,7 @@ export const AdvancedSettings = ({
             min={1}
             max={6}
             value={conversationTimeout}
-            onChange={(e) => {
-              const value = parseInt(e.target.value);
-              if (value >= 1 && value <= 6) {
-                onTimeoutChange(value);
-              }
-            }}
+            onChange={(e) => handleTimeoutChange(e.target.value)}
             className="w-full"
           />
           <p className="text-xs text-slate-500">

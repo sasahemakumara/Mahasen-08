@@ -20,9 +20,11 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-async function getRecentConversationHistory(userId: string): Promise<string> {
+async function getRecentConversationHistory(userId: string, timeoutHours: number): Promise<string> {
   try {
-    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+    // Get timeout setting from AI settings
+    const timeoutAgo = new Date(Date.now() - (timeoutHours * 60 * 60 * 1000)).toISOString();
+    console.log(`Getting messages newer than: ${timeoutAgo} (${timeoutHours} hours ago)`);
     
     // Get the conversation ID for this user's recent messages
     const { data: conversations, error: convError } = await supabase
@@ -39,17 +41,22 @@ async function getRecentConversationHistory(userId: string): Promise<string> {
 
     const conversationId = conversations[0].id;
 
-    // Get the last 4 messages (2 exchanges) within the last hour
+    // Get the messages within the timeout period
     const { data: messages, error: msgError } = await supabase
       .from('messages')
       .select('content, sender_name, created_at')
       .eq('conversation_id', conversationId)
-      .gt('created_at', oneHourAgo)
+      .gt('created_at', timeoutAgo)
       .order('created_at', { ascending: false })
       .limit(4);
 
-    if (msgError || !messages?.length) {
-      console.log('No recent messages found');
+    if (msgError) {
+      console.error('Error fetching messages:', msgError);
+      return '';
+    }
+
+    if (!messages?.length) {
+      console.log('No recent messages found within timeout period');
       return '';
     }
 
@@ -111,7 +118,7 @@ serve(async (req) => {
 
       console.log(`Received message from ${userName} (${userId}): ${userMessage}`);
 
-      // Get AI settings
+      // Get AI settings including timeout
       const { data: aiSettings, error: settingsError } = await supabase
         .from('ai_settings')
         .select('*')
@@ -122,8 +129,11 @@ serve(async (req) => {
         throw settingsError;
       }
 
-      // Get recent conversation history
-      const conversationHistory = await getRecentConversationHistory(userId);
+      // Get recent conversation history with timeout
+      const conversationHistory = await getRecentConversationHistory(
+        userId, 
+        aiSettings.conversation_timeout_hours || 1
+      );
       console.log('Retrieved conversation history:', conversationHistory);
 
       // Generate embedding for the user's message
