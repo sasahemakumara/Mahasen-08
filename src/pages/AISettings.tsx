@@ -9,13 +9,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import type { AITone } from "@/types/ai";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { AdvancedSettings } from "@/components/ai-settings/AdvancedSettings";
 
 const AISettings = () => {
   const navigate = useNavigate();
@@ -25,7 +22,6 @@ const AISettings = () => {
   const [contextMemoryLength, setContextMemoryLength] = useState<string>("2");
   const [conversationTimeout, setConversationTimeout] = useState<number>(1);
   const [isLoading, setIsLoading] = useState(false);
-  const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
 
   useEffect(() => {
     const loadSettings = async () => {
@@ -35,7 +31,10 @@ const AISettings = () => {
           .select('*')
           .single();
 
-        if (error) throw error;
+        if (error) {
+          console.error('Error loading AI settings:', error);
+          throw error;
+        }
 
         if (data) {
           setTone(data.tone as AITone);
@@ -59,13 +58,23 @@ const AISettings = () => {
   const handleSave = async () => {
     setIsLoading(true);
     try {
+      // Validate inputs before saving
+      const memoryLength = contextMemoryLength === "Disable" ? 0 : parseInt(contextMemoryLength);
+      if (isNaN(memoryLength) || memoryLength < 0 || memoryLength > 5) {
+        throw new Error("Invalid context memory length");
+      }
+
+      if (conversationTimeout < 1 || conversationTimeout > 6) {
+        throw new Error("Conversation timeout must be between 1 and 6 hours");
+      }
+
       const { error } = await supabase
         .from('ai_settings')
         .upsert({ 
           id: 1,
           tone,
           behaviour,
-          context_memory_length: contextMemoryLength === "Disable" ? 0 : parseInt(contextMemoryLength),
+          context_memory_length: memoryLength,
           conversation_timeout_hours: conversationTimeout,
           updated_at: new Date().toISOString()
         });
@@ -83,7 +92,7 @@ const AISettings = () => {
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to save AI settings. Please try again.",
+        description: error instanceof Error ? error.message : "Failed to save AI settings. Please try again.",
       });
     } finally {
       setIsLoading(false);
@@ -130,57 +139,12 @@ const AISettings = () => {
             </p>
           </div>
 
-          <Collapsible
-            open={isAdvancedOpen}
-            onOpenChange={setIsAdvancedOpen}
-            className="border-2 border-red-500 rounded-lg"
-          >
-            <CollapsibleTrigger className="flex w-full justify-between items-center p-4 hover:bg-slate-50 dark:hover:bg-slate-800">
-              <h2 className="text-lg font-medium">Advanced Settings</h2>
-              <span className="text-sm text-slate-500">
-                {isAdvancedOpen ? "Hide" : "Show"}
-              </span>
-            </CollapsibleTrigger>
-            <CollapsibleContent className="p-4 pt-0">
-              <div className="space-y-4">
-                <label className="text-sm font-medium">Context Memory Length</label>
-                <RadioGroup
-                  value={contextMemoryLength}
-                  onValueChange={setContextMemoryLength}
-                  className="flex flex-wrap gap-4"
-                >
-                  {["1", "2", "3", "5", "Disable"].map((value) => (
-                    <div key={value} className="flex items-center space-x-2">
-                      <RadioGroupItem value={value} id={`memory-${value}`} />
-                      <Label htmlFor={`memory-${value}`}>{value}</Label>
-                    </div>
-                  ))}
-                </RadioGroup>
-              </div>
-
-              <div className="space-y-2 mt-4">
-                <label className="text-sm font-medium">
-                  New Conversation Timeout (hours)
-                </label>
-                <Input
-                  type="number"
-                  min={1}
-                  max={6}
-                  value={conversationTimeout}
-                  onChange={(e) => {
-                    const value = parseInt(e.target.value);
-                    if (value >= 1 && value <= 6) {
-                      setConversationTimeout(value);
-                    }
-                  }}
-                  className="w-full"
-                />
-                <p className="text-xs text-slate-500">
-                  Set between 1-6 hours
-                </p>
-              </div>
-            </CollapsibleContent>
-          </Collapsible>
+          <AdvancedSettings
+            contextMemoryLength={contextMemoryLength}
+            conversationTimeout={conversationTimeout}
+            onContextMemoryChange={setContextMemoryLength}
+            onTimeoutChange={setConversationTimeout}
+          />
 
           <div className="flex justify-end space-x-4 pt-4">
             <Button
