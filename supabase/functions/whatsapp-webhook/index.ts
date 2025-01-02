@@ -20,6 +20,52 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+async function getRecentConversationHistory(userId: string): Promise<string> {
+  try {
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+    
+    // Get the conversation ID for this user's recent messages
+    const { data: conversations, error: convError } = await supabase
+      .from('conversations')
+      .select('id')
+      .eq('contact_number', userId)
+      .order('created_at', { ascending: false })
+      .limit(1);
+
+    if (convError || !conversations?.length) {
+      console.log('No recent conversation found');
+      return '';
+    }
+
+    const conversationId = conversations[0].id;
+
+    // Get the last 4 messages (2 exchanges) within the last hour
+    const { data: messages, error: msgError } = await supabase
+      .from('messages')
+      .select('content, sender_name, created_at')
+      .eq('conversation_id', conversationId)
+      .gt('created_at', oneHourAgo)
+      .order('created_at', { ascending: false })
+      .limit(4);
+
+    if (msgError || !messages?.length) {
+      console.log('No recent messages found');
+      return '';
+    }
+
+    // Format the conversation history
+    const history = messages
+      .reverse()
+      .map(msg => `${msg.sender_name}: ${msg.content}`)
+      .join('\n');
+
+    return history ? `\nRecent conversation history:\n${history}` : '';
+  } catch (error) {
+    console.error('Error fetching conversation history:', error);
+    return '';
+  }
+}
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -76,6 +122,10 @@ serve(async (req) => {
         throw settingsError;
       }
 
+      // Get recent conversation history
+      const conversationHistory = await getRecentConversationHistory(userId);
+      console.log('Retrieved conversation history:', conversationHistory);
+
       // Generate embedding for the user's message
       const { data: embeddingData, error: embeddingError } = await supabase.functions.invoke(
         'generate-embedding',
@@ -115,10 +165,11 @@ serve(async (req) => {
           .join('\n')}`;
       }
 
-      // Add AI settings to context
-      const aiContext = `You are an Helpful Customer support AI. 
+      // Add AI settings and conversation history to context
+      const aiContext = `You are the official Customer support AI assistant of Bellose. 
 Your tone should be ${aiSettings.tone.toLowerCase()}. 
 ${aiSettings.behaviour ? `Additional behavior instructions: ${aiSettings.behaviour}` : ''}
+${conversationHistory}
 Please use the following information to answer the question. If the information provided is not relevant to the question, you may provide a ${aiSettings.tone.toLowerCase()} general response.
 
 ${context || 'No specific information found in the knowledge base. Please provide a general response.'}`;
