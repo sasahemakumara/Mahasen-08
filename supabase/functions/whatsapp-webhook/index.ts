@@ -176,11 +176,10 @@ serve(async (req) => {
       }
 
       // Add AI settings and conversation history to context
-      const aiContext = `You are the official Customer support AI assistant of Bellose. 
-Your tone should be ${aiSettings.tone.toLowerCase()}. 
-${aiSettings.behaviour ? `Additional behavior instructions: ${aiSettings.behaviour}` : ''}
+      const aiContext = `Your tone should be ${aiSettings.tone.toLowerCase()}. 
+${aiSettings.behaviour ? `Behavior instructions: ${aiSettings.behaviour}` : ''}
 ${conversationHistory}
-Please use the following information to answer the question. If the information provided is not relevant to the question, you may provide a ${aiSettings.tone.toLowerCase()} general response.
+Please use the following information to answer the question. If the information provided is not relevant to the question, you may provide a ${aiSettings.tone.toLowerCase()} general response. Only take knowledge from recent conversations, Don't include anything about recent conversation in your replies.
 
 ${context || 'No specific information found in the knowledge base. Please provide a general response.'}`;
 
